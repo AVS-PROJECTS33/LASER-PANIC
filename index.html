@@ -1,330 +1,569 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-   <meta charset="UTF-8">
-   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-   <title>Visor IGN - Herramientas Geográficas</title>
-   
-   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+    <meta charset="UTF-8">
+    <title>REGISTRO HORAS MD</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Librerías para PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    
+    <style>
+        * { box-sizing: border-box; }
+        :root {
+            --bg-body: #f4f6f9;
+            --bg-card: #ffffff;
+            --text-main: #333333;
+            --border-color: #eeeeee;
+            --primary: #007bff;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --info: #17a2b8;
+        }
 
-   <style>
-       :root {
-           --ign-blue: #003366;
-           --ign-gold: #e6b800;
-           --danger: #dc3545;
-           --success: #28a745;
-           --grid-red: #ff0000;
-           --shadow: 0 4px 12px rgba(0,0,0,0.15);
-           --bg-sidebar: #ffffff;
-           --light-gray: #f8fafc;
-       }
+        body.dark-mode {
+            --bg-body: #121212;
+            --bg-card: #1e1e1e;
+            --text-main: #e0e0e0;
+            --border-color: #333333;
+        }
 
-       body, html {
-           margin: 0; padding: 0; height: 100%;
-           font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-           overflow: hidden;
-           background: #f0f0f0;
-       }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; 
+            padding: 10px; 
+            background: var(--bg-body); 
+            color: var(--text-main); 
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
 
-       #map-container { position: relative; height: 100vh; width: 100%; }
-       #map { height: 100%; width: 100%; background: #eee; }
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 5px 0 15px;
+            gap: 10px;
+        }
 
-       #cancel-crop-btn {
-           position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-           z-index: 2000; background: var(--danger); color: white; border: none;
-           padding: 12px 28px; border-radius: 50px; font-weight: 600;
-           box-shadow: 0 4px 20px rgba(0,0,0,0.4); cursor: pointer; display: none;
-       }
+        h1 { 
+            text-transform: uppercase; 
+            margin: 0; 
+            font-size: 1.1rem; 
+            flex-grow: 1;
+            text-align: left;
+        }
 
-       .sidebar {
-           position: absolute; top: 10px; right: 10px; z-index: 1001;
-           width: 340px; max-width: calc(100vw - 20px);
-           background: var(--bg-sidebar); border-radius: 12px;
-           box-shadow: var(--shadow); display: flex; flex-direction: column;
-           max-height: calc(100vh - 20px); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-           border: 1px solid #e2e8f0;
-       }
-       .sidebar.oculto { transform: translateX(120%); }
-       
-       .header {
-           background: var(--ign-blue); color: white; padding: 16px; border-radius: 12px 12px 0 0;
-           display: flex; align-items: center; justify-content: space-between;
-       }
-       .content { padding: 16px; overflow-y: auto; flex: 1; }
+        .header-btns {
+            display: flex;
+            gap: 5px;
+        }
 
-       .section-title {
-           font-size: 11px; font-weight: 800; color: #64748b;
-           margin-bottom: 12px; text-transform: uppercase;
-           border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; margin-top: 20px;
-           letter-spacing: 0.5px;
-       }
+        #modoBtn, #ayudaBtn { 
+            background: #6c757d; 
+            padding: 6px 10px; 
+            font-size: 11px; 
+            width: auto; 
+            margin: 0;
+            white-space: nowrap;
+        }
 
-       .folder { border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 15px; overflow: hidden; background: var(--light-gray); }
-       .folder-header { background: #fff; padding: 12px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-weight: 600; font-size: 14px; color: var(--ign-blue); }
-       .folder-content { padding: 12px; display: none; max-height: 400px; overflow-y: auto; }
-       .folder.open .folder-content { display: block; }
+        #ayudaBtn {
+            background: var(--info);
+            font-weight: bold;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
 
-       .btn-outline {
-           background: white; color: var(--ign-blue); border: 1.5px solid var(--ign-blue);
-           width: 100%; padding: 10px; border-radius: 8px; cursor: pointer;
-           font-weight: 600; margin-bottom: 10px; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 8px; box-sizing: border-box;
-       }
-       .btn-outline:hover, .btn-outline.active { background: var(--ign-blue); color: white; }
-       .btn-success { background: var(--success); color: white; border: none; width: 100%; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: 600; margin-bottom: 10px; font-size: 13px; }
+        .top-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+        .card { 
+            background: var(--bg-card); 
+            padding: 12px; 
+            border-radius: 10px; 
+            margin-bottom: 12px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06); 
+            text-align: center; 
+            transition: inherit;
+        }
+        .top-cards .card { margin-bottom: 0; padding: 10px; }
+        .card-extra { grid-column: 1 / -1; }
+        .card-extra h2 { font-size: 1.8em; margin: 5px 0; color: var(--success); }
+        .card-extra h3 { font-size: 0.8rem; }
+        .card h3 { margin: 0; font-size: 0.75rem; opacity: 0.8; text-transform: uppercase; }
+        .card h2 { font-size: 1.4em; margin: 5px 0; }
+        
+        .positive { border-top: 4px solid var(--success); }
+        .negative { border-top: 4px solid var(--danger); }
+        .exceso { border-top: 4px solid var(--warning); }
 
-       .form-input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e0; margin-bottom: 12px; box-sizing: border-box; font-size: 13px; background: #fff; }
+        .form-group { text-align: left; margin-top: 8px; }
+        .form-group label { display: block; font-size: 0.75rem; font-weight: bold; margin-bottom: 2px; opacity: 0.7; }
 
-       .coord-display {
-           position: absolute; bottom: 20px; left: 10px; z-index: 999; background: rgba(255,255,255,0.95);
-           padding: 8px 16px; border-radius: 30px; font-size: 12px; font-family: 'Consolas', monospace;
-           border: 1px solid #e2e8f0; font-weight: 600; box-shadow: var(--shadow); pointer-events: none; min-width: 260px; text-align: center;
-       }
+        input, select, button { 
+            width: 100%; 
+            padding: 10px; 
+            margin-top: 2px; 
+            border-radius: 6px; 
+            border: 1px solid #ccc; 
+            font-size: 14px;
+            appearance: none;
+        }
+        
+        .dark-mode input, .dark-mode select { 
+            background: #2a2a2a; 
+            color: #e0e0e0; 
+            border: 1px solid #444; 
+        }
 
-       .fab-menu {
-           position: absolute; bottom: 25px; right: 20px; z-index: 1000; background: var(--ign-blue); color: white;
-           border: none; border-radius: 50px; padding: 14px 28px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 8px;
-       }
+        button { 
+            background: var(--primary); 
+            color: white; 
+            border: none; 
+            cursor: pointer; 
+            font-weight: bold;
+            margin-top: 12px;
+        }
 
-       .edit-item { background: white; border: 1px solid #e2e8f0; padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; font-size: 12px; }
-       .grid-label {
-           background: rgba(255,255,255,0.9); padding: 2px 5px; border-radius: 3px;
-           font-size: 10px; color: var(--grid-red); font-weight: bold; border: 1px solid var(--grid-red);
-           white-space: nowrap; pointer-events: none;
-       }
+        .item { 
+            border-bottom: 1px solid var(--border-color); 
+            padding: 10px 0; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            text-align: left;
+        }
+        .tipo { font-size: 10px; font-weight: bold; padding: 1px 5px; border-radius: 3px; display: inline-block; margin-bottom: 2px; }
+        .verde { color: var(--success); background: rgba(40, 167, 69, 0.1); }
+        .rojo { color: var(--danger); background: rgba(220, 53, 69, 0.1); }
+        .amarillo { color: #b08d05; background: rgba(255, 193, 7, 0.1); }
+        
+        .borrar-btn { background: var(--danger); width: auto; padding: 4px 10px; font-size: 11px; margin: 0; }
+        
+        .mes-titulo { 
+            background: rgba(0,0,0,0.04);
+            padding: 6px 10px;
+            border-radius: 5px;
+            margin-top: 15px; 
+            font-weight: bold; 
+            font-size: 12px; 
+            display: flex; 
+            justify-content: space-between; 
+        }
+        .dark-mode .mes-titulo { background: rgba(255,255,255,0.04); }
 
-       .hide-controls .leaflet-control-container, .hide-controls .fab-menu, .hide-controls .coord-display { opacity: 0; pointer-events: none; }
-       #importInput { display: none; }
-   </style>
+        #mensaje { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 8px 16px; border-radius: 20px; display: none; z-index: 9999; font-size: 12px; }
+
+        .header-historial { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .btn-group-sm { display: flex; gap: 5px; }
+        .btn-group-sm button { width: auto; margin: 0; padding: 6px 10px; font-size: 11px; }
+
+        #customModal, #manualModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10000; justify-content: center; align-items: center; }
+        .modal-content { background: var(--bg-card); padding: 20px; border-radius: 12px; text-align: center; max-width: 320px; width: 85%; max-height: 80vh; overflow-y: auto; }
+        .modal-buttons { display: flex; gap: 8px; margin-top: 15px; }
+        .modal-buttons button { margin: 0; flex: 1; padding: 8px; font-size: 13px; }
+
+        .manual-item { text-align: left; margin-bottom: 15px; font-size: 13px; }
+        .manual-item b { color: var(--primary); display: block; margin-bottom: 3px; }
+
+        .backup-controls {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .backup-controls button {
+            background: #6c757d;
+            font-size: 10px;
+            padding: 8px;
+        }
+    </style>
 </head>
 <body>
 
-   <div id="map-container">
-       <div id="map"></div>
-   </div>
+<div class="header-container">
+    <h1>REGISTRO HORAS MD</h1>
+    <div class="header-btns">
+        <button id="ayudaBtn" title="Ayuda" onclick="toggleManual()">?</button>
+        <button id="modoBtn" onclick="toggleModo()">Modo...</button>
+    </div>
+</div>
 
-   <button id="cancel-crop-btn" onclick="stopPolygonalCrop()">✕ Cancelar Recorte (Esc)</button>
-   <div class="coord-display" id="liveCoords">Cargando visor...</div>
+<div class="top-cards">
+    <div class="card positive card-extra">
+        <h3>Extra Acumuladas</h3>
+        <h2 id="totalExtra">0.00</h2>
+    </div>
+    <div class="card negative">
+        <h3>Negativas</h3>
+        <h2 id="totalNeg">0.00</h2>
+    </div>
+    <div class="card exceso">
+        <h3>Exceso</h3>
+        <h2 id="totalExceso">0.00</h2>
+    </div>
+</div>
 
-   <button class="fab-menu" id="fabBtn" onclick="toggleMenu()">🛠️ Herramientas</button>
+<div class="card">
+    <h3 style="text-align: left; margin-bottom: 5px;">Nuevo Registro</h3>
+    
+    <div class="form-group">
+        <label>Tipo de hora</label>
+        <select id="tipo">
+            <option value="extra">➕ Extra (x1.75)</option>
+            <option value="negativa">➖ Negativa (x1.0)</option>
+            <option value="festiva">🎉 Festiva (x2.25)</option>
+            <option value="nocturna">🌙 Nocturna (x2.0)</option>
+            <option value="exceso">⚠️ Exceso (x1.0)</option>
+        </select>
+    </div>
 
-   <div class="sidebar oculto" id="panelLateral">
-       <div class="header">
-           <span style="font-weight: 600; font-size: 16px;">Panel de Control</span>
-           <button style="background:none; border:none; color:white; cursor:pointer; font-size: 20px;" onclick="toggleMenu()">✕</button>
-       </div>
-       <div class="content">
-           <div class="section-title">🔍 Buscador</div>
-           <div style="display:flex; gap:5px; margin-bottom:12px;">
-               <input type="text" id="searchInput" class="form-input" style="margin-bottom:0;" placeholder="Ciudad, dirección..." onkeypress="handleSearch(event)">
-               <button class="btn-outline" style="width:auto; margin-bottom:0; padding:0 15px;" onclick="buscarLugar()">Ir</button>
-           </div>
-           
-           <div class="section-title">🌍 Capas Base</div>
-           <select id="baseLayer" class="form-input" onchange="changeLayer(this.value)">
-               <option value="mtn">Mapa Topográfico (MTN)</option>
-               <option value="pnoa">Satélite (PNOA)</option>
-               <option value="base">Callejero IGN</option>
-               <option value="osm">OpenStreetMap</option>
-           </select>
+    <div class="form-group">
+        <label>Horas</label>
+        <input type="number" id="horas" placeholder="0.00" step="0.01">
+    </div>
 
-           <div class="section-title">📏 Escala Cartográfica</div>
-           <select id="scaleSelector" class="form-input" onchange="changeScale(this.value)">
-               <option value="custom">Personalizada</option>
-               <option value="18">1:2.500 (Urbano)</option>
-               <option value="17">1:5.000 (Catastro)</option>
-               <option value="16">1:10.000 (Local)</option>
-               <option value="15">1:25.000 (MTN25)</option>
-               <option value="14">1:50.000 (MTN50)</option>
-               <option value="12">1:200.000 (Provincial)</option>
-           </select>
-           
-           <div class="section-title">💾 Gestión de Ediciones</div>
-           <div class="folder open" id="editsFolder">
-               <div class="folder-header" onclick="toggleFolder('editsFolder')">
-                   <span>✏️ Dibujos y Capas</span>
-                   <span>▼</span>
-               </div>
-               <div class="folder-content">
-                   <input type="text" id="editSessionName" class="form-input" placeholder="Nombre...">
-                   <button class="btn-success" onclick="saveCurrentEdits()">💾 Guardar Sesión</button>
-                   <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:12px;">
-                       <button class="btn-outline" style="margin-bottom:0;" onclick="exportarGeoJSON()">📤 Exportar</button>
-                       <button class="btn-outline" style="margin-bottom:0;" onclick="triggerImport()">📥 Importar</button>
-                       <input type="file" id="importInput" accept=".geojson,.json" onchange="importarGeoJSON(event)">
-                   </div>
-                   <div id="savedEditsList"></div>
-                   <button class="btn-outline" style="color:var(--danger); border-color:var(--danger);" onclick="clearAllDrawings()">🗑️ Borrar Mapa</button>
-               </div>
-           </div>
+    <div class="form-group">
+        <label>Fecha</label>
+        <input type="date" id="fecha">
+    </div>
 
-           <div class="section-title">📍 Sistema de Coordenadas</div>
-           <select id="gridType" class="form-input" onchange="updateCoordinateSystem()">
-               <option value="decimal">Grados Decimales (DD)</option>
-               <option value="dms">G. M. S. (DMS)</option>
-               <option value="utm">UTM (Coordenadas Métricas)</option>
-           </select>
-           
-           <div class="section-title">🌐 Visualización</div>
-           <button id="gridToggleBtn" class="btn-outline" onclick="toggleGrid()">Activar Cuadrícula</button>
-           
-           <div class="section-title">📸 Capturas</div>
-           <div class="folder" id="cropFolder">
-               <div class="folder-header" onclick="toggleFolder('cropFolder')">
-                   <span>📁 Carpeta Recortes</span>
-                   <span>▼</span>
-               </div>
-               <div class="folder-content">
-                   <button class="btn-outline" id="cropPanelBtn" onclick="togglePolygonalCrop()">✂️ Recorte Poligonal</button>
-                   <div id="gallery"></div>
-               </div>
-           </div>
-       </div>
-   </div>
+    <div class="form-group">
+        <label>Observaciones</label>
+        <input type="text" id="desc" placeholder="Nota rápida...">
+    </div>
 
-   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
-   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <button onclick="guardar()">GUARDAR</button>
+</div>
 
-   <script>
-       let snapshots = [];
-       let savedEdits = JSON.parse(localStorage.getItem('ign_saved_edits') || '[]');
-       let isCropping = false, currentDrawHandler = null, gridLayer = null, isGridVisible = false;
+<div class="card">
+    <div class="header-historial">
+        <h3>Historial</h3>
+        <div class="btn-group-sm">
+            <button style="background: var(--success);" onclick="exportarPDF()">📄 PDF</button>
+        </div>
+    </div>
+    <input type="text" id="buscador" placeholder="Buscar..." oninput="mostrar()" style="padding: 8px; font-size: 13px;">
+    
+    <div class="backup-controls">
+        <button onclick="exportarJSON()">💾 Exportar JSON</button>
+        <button onclick="document.getElementById('fileInput').click()">📂 Importar JSON</button>
+        <input type="file" id="fileInput" style="display:none" accept=".json" onchange="importarJSON(event)">
+    </div>
 
-       // --- URLs DE CAPAS CORREGIDAS ---
-       const layers = {
-           mtn: L.tileLayer('https://www.ign.es/wmts/mapa-raster?layer=MTN&style=default&tilematrixset=GoogleMapsCompatible&Service=WMTS&Request=GetTile&Version=1.0.0&Format=image/jpeg&TileMatrix={z}&TileCol={x}&TileRow={y}', { attribution: '© IGN', crossOrigin: 'anonymous' }),
-           pnoa: L.tileLayer('https://www.ign.es/wmts/pnoa-ma?layer=OI.OrthoimageCoverage&style=default&tilematrixset=GoogleMapsCompatible&Service=WMTS&Request=GetTile&Version=1.0.0&Format=image/jpeg&TileMatrix={z}&TileCol={x}&TileRow={y}', { attribution: '© IGN - PNOA', crossOrigin: 'anonymous' }),
-           base: L.tileLayer('https://www.ign.es/wmts/ign-base?layer=IGNBaseTodo&style=default&tilematrixset=GoogleMapsCompatible&Service=WMTS&Request=GetTile&Version=1.0.0&Format=image/png&TileMatrix={z}&TileCol={x}&TileRow={y}', { attribution: '© IGN', crossOrigin: 'anonymous' }),
-           osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' })
-       };
+    <div id="lista"></div>
+</div>
 
-       const map = L.map('map', { center: [40.4167, -3.7037], zoom: 6, layers: [layers.mtn] });
-       const drawnItems = new L.FeatureGroup().addTo(map);
-       const drawControl = new L.Control.Draw({ position: 'topleft', draw: { circlemarker: false }, edit: { featureGroup: drawnItems } });
-       map.addControl(drawControl);
+<button style="background:#dc3545; margin-bottom: 30px; padding: 8px; font-size: 12px; width: auto; margin: 0 auto 40px; display: block;" onclick="reiniciarAno()">Reiniciar Año</button>
 
-       // --- Lógica UTM ---
-       function latLonToUTM(lat, lon) {
-           const a = 6378137.0, f = 1 / 298.257223563;
-           const k0 = 0.9996;
-           let huso = Math.floor((lon + 180) / 6) + 1;
-           const lon0 = (huso - 1) * 6 - 180 + 3;
-           const phi = lat * Math.PI / 180, lambda = lon * Math.PI / 180, lambda0 = lon0 * Math.PI / 180;
-           const e2 = 2 * f - f * f, ep2 = e2 / (1 - e2);
-           const N = a / Math.sqrt(1 - e2 * Math.sin(phi) * Math.sin(phi));
-           const T = Math.tan(phi) ** 2, C = ep2 * Math.cos(phi) ** 2, A = (lambda - lambda0) * Math.cos(phi);
-           const M = a * ((1 - e2 / 4 - 3 * e2 * e2 / 64 - 5 * e2 * e2 * e2 / 256) * phi - (3 * e2 / 8 + 3 * e2 * e2 / 32 + 45 * e2 * e2 * e2 / 1024) * Math.sin(2 * phi) + (15 * e2 / 256 + 45 * e2 * e2 / 1024) * Math.sin(4 * phi) - (35 * e2 / 3072) * Math.sin(6 * phi));
-           const x = k0 * N * (A + (1 - T + C) * A ** 3 / 6 + (5 - 18 * T + T ** 2 + 72 * C - 58 * ep2) * A ** 5 / 120) + 500000.0;
-           let y = k0 * (M + N * Math.tan(phi) * (A ** 2 / 2 + (5 - T + 9 * C + 4 * C ** 2) * A ** 4 / 24 + (61 - 58 * T + T ** 2 + 600 * C - 330 * ep2) * A ** 6 / 720));
-           if (lat < 0) y += 10000000.0;
-           return { x, y, huso };
-       }
+<div id="mensaje">✅</div>
 
-       function formatDMS(deg, isLat) {
-           const abs = Math.abs(deg);
-           const d = Math.floor(abs), m = Math.floor((abs - d) * 60), s = ((abs - d - m/60) * 3600).toFixed(1);
-           return `${d}°${m}'${s}"${isLat ? (deg >= 0 ? 'N' : 'S') : (deg >= 0 ? 'E' : 'W')}`;
-       }
+<div style="text-align: center; margin-bottom: 30px; font-size: 11px; opacity: 0.5;">
+    Almacenamiento Local<br>
+    AVS v3.2
+</div>
 
-       function formatCoordinates(latlng) {
-           const type = document.getElementById('gridType').value;
-           if (type === 'dms') return `${formatDMS(latlng.lat, true)} | ${formatDMS(latlng.lng, false)}`;
-           if (type === 'utm') {
-               const u = latLonToUTM(latlng.lat, latlng.lng);
-               return `Huso ${u.huso} | X: ${u.x.toFixed(0)} Y: ${u.y.toFixed(0)}`;
-           }
-           return `Lat: ${latlng.lat.toFixed(6)} | Lon: ${latlng.lng.toFixed(6)}`;
-       }
+<!-- Modal de Confirmación -->
+<div id="customModal">
+    <div class="modal-content">
+        <p id="modalText" style="font-size: 14px;"></p>
+        <div class="modal-buttons">
+            <button id="modalBtnCancel">No</button>
+            <button id="modalBtnOk">Sí</button>
+        </div>
+    </div>
+</div>
 
-       // --- Cuadrícula ---
-       function toggleGrid() {
-           isGridVisible = !isGridVisible;
-           const btn = document.getElementById('gridToggleBtn');
-           if (isGridVisible) {
-               updateGrid();
-               map.on('moveend', updateGrid);
-               btn.innerText = "Quitar Cuadrícula";
-               btn.classList.add('active');
-           } else {
-               if (gridLayer) map.removeLayer(gridLayer);
-               map.off('moveend', updateGrid);
-               btn.innerText = "Activar Cuadrícula";
-               btn.classList.remove('active');
-           }
-       }
+<!-- Modal de Manual/Ayuda -->
+<div id="manualModal">
+    <div class="modal-content">
+        <h3 style="margin-top:0">Guía de Funciones</h3>
+        
+        <div class="manual-item">
+            <b>🚀 Multiplicadores</b>
+            Cálculo automático: Extra (x1.75), Nocturna (x2.0) y Festiva (x2.25). Negativas y Excesos son 1:1.
+        </div>
 
-       function updateGrid() {
-           if (!isGridVisible) return;
-           if (gridLayer) map.removeLayer(gridLayer);
-           gridLayer = L.layerGroup();
-           const b = map.getBounds(), z = map.getZoom(), type = document.getElementById('gridType').value;
-           
-           let step = z > 14 ? 0.005 : z > 12 ? 0.02 : z > 10 ? 0.1 : 0.5;
-           const sLat = Math.floor(b.getSouth() / step) * step, eLat = Math.ceil(b.getNorth() / step) * step;
-           const sLng = Math.floor(b.getWest() / step) * step, eLng = Math.ceil(b.getEast() / step) * step;
+        <div class="manual-item">
+            <b>📄 Exportar PDF</b>
+            Genera un documento profesional con tu historial detallado. Ideal para presentar informes, guardar registros físicos o enviar por correo.
+        </div>
 
-           for (let lat = sLat; lat <= eLat; lat += step) {
-               L.polyline([[lat, b.getWest()], [lat, b.getEast()]], {color: 'red', weight: 1, opacity: 0.4}).addTo(gridLayer);
-               let label = (type === 'utm') ? `Y:${latLonToUTM(lat, b.getCenter().lng).y.toFixed(0)}` : (type === 'dms' ? formatDMS(lat, true) : lat.toFixed(3));
-               L.marker([lat, b.getWest()], { icon: L.divIcon({ className: 'grid-label', html: label, iconAnchor: [-5, 10] }) }).addTo(gridLayer);
-           }
-           for (let lng = sLng; lng <= eLng; lng += step) {
-               L.polyline([[b.getSouth(), lng], [b.getNorth(), lng]], {color: 'red', weight: 1, opacity: 0.4}).addTo(gridLayer);
-               let label = (type === 'utm') ? `X:${latLonToUTM(b.getCenter().lat, lng).x.toFixed(0)}` : (type === 'dms' ? formatDMS(lng, false) : lng.toFixed(3));
-               L.marker([b.getNorth(), lng], { icon: L.divIcon({ className: 'grid-label', html: label, iconAnchor: [30, -5] }) }).addTo(gridLayer);
-           }
-           gridLayer.addTo(map);
-       }
+        <div class="manual-item">
+            <b>💾 Copias de Seguridad (JSON)</b>
+            <b>Exportar JSON:</b> Descarga un archivo con todos tus datos actuales. Guárdalo para no perder nada si cambias de móvil o borras el navegador.<br>
+            <b>Importar JSON:</b> Recupera tus datos desde una copia previamente guardada seleccionando el archivo .json.
+        </div>
 
-       // --- Gestión Interfaz ---
-       function toggleFolder(id) { document.getElementById(id).classList.toggle('open'); }
-       function toggleMenu() { document.getElementById('panelLateral').classList.toggle('oculto'); }
-       function changeScale(z) { if (z !== 'custom') map.setZoom(parseInt(z)); }
-       
-       map.on('zoomend', () => {
-           const z = map.getZoom(), sel = document.getElementById('scaleSelector');
-           let f = false;
-           for (let i=0; i<sel.options.length; i++) if (parseInt(sel.options[i].value) === z) { sel.selectedIndex = i; f = true; break; }
-           if (!f) sel.value = 'custom';
-       });
+        <div class="manual-item">
+            <b>📉 Ajustes Manuales</b>
+            Si registras un valor negativo (ej: -1.0) en cualquier categoría, se restará esa cantidad exacta (factor x1.0) para correcciones rápidas.
+        </div>
 
-       // --- Ediciones ---
-       function updateEditsList() {
-           const l = document.getElementById('savedEditsList');
-           l.innerHTML = savedEdits.length ? savedEdits.map((e, i) => `
-               <div class="edit-item">
-                   <div><b>${e.name}</b><br><small>${e.date}</small></div>
-                   <div class="edit-actions">
-                       <button onclick="loadEdits(${i})">📂</button>
-                       <button onclick="deleteEdits(${i})" style="color:red; border:none; cursor:pointer;">🗑️</button>
-                   </div>
-               </div>`).join('') : '<p style="font-size:11px; text-align:center;">Vacío</p>';
-       }
+        <button onclick="toggleManual()" style="background: var(--info); margin-top:10px">ENTENDIDO</button>
+    </div>
+</div>
 
-       function saveCurrentEdits() {
-           const n = document.getElementById('editSessionName').value || `Sesión ${savedEdits.length+1}`;
-           const data = drawnItems.toGeoJSON();
-           if (!data.features.length) return alert("Sin dibujos.");
-           savedEdits.push({ name: n, date: new Date().toLocaleString(), data });
-           localStorage.setItem('ign_saved_edits', JSON.stringify(savedEdits));
-           updateEditsList();
-       }
+<script>
+    let lista = JSON.parse(localStorage.getItem('horas_md_data')) || [];
 
-       function loadEdits(i) { 
-           L.geoJSON(savedEdits[i].data, { 
-               onEachFeature: (f, l) => {
-                   if (l instanceof L.Marker || l instanceof L.Path) drawnItems.addLayer(l);
-               } 
-           }); 
-           if (drawnItems.getLayers().length > 0) map.fitBounds(drawnItems.getBounds()); 
-       }
+    function guardarLocal() {
+        localStorage.setItem('horas_md_data', JSON.stringify(lista));
+        mostrar();
+    }
 
-       function deleteEdits(i) { savedEdits.splice(i,1); localStorage.setItem('ign_saved_edits', JSON.stringify(savedEdits)); updateEditsList(); }
-       function clearAllDrawings() { if (confirm("¿Borrar todo?")) drawnItems.clearLayers(); }
-       function triggerImport() { document.getElementById('importInput').click(); }
+    window.guardar = () => {
+        const hIn = parseFloat(document.getElementById("horas").value);
+        const desc = document.getElementById("desc").value || "-";
+        const fecha = document.getElementById("fecha").value;
+        const tipoInput = document.getElementById("tipo").value;
 
-       function importarGeoJSON(ev) {
-           const fr = new FileReader();
-           fr.onload = (e) => {
-               const data
+        if (isNaN(hIn) || hIn === 0) { showModal("Indica una cantidad de horas válida."); return; }
+        if (!fecha) { showModal("La fecha es necesaria."); return; }
+
+        let factor = 1.0;
+        
+        if (hIn > 0) {
+            if (tipoInput === "extra") factor = 1.75;
+            else if (tipoInput === "festiva") factor = 2.25;
+            else if (tipoInput === "nocturna") factor = 2.0;
+        } else {
+            factor = 1.0; 
+        }
+
+        const nuevoRegistro = {
+            id: Date.now().toString(),
+            horasCalculadas: hIn * factor,
+            horasOriginales: hIn,
+            desc: desc,
+            fecha: fecha,
+            tipoOriginal: tipoInput,
+            timestamp: Date.now()
+        };
+
+        lista.push(nuevoRegistro);
+        lista.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+        guardarLocal();
+
+        document.getElementById("horas").value = "";
+        document.getElementById("desc").value = "";
+        showToast("Guardado");
+    };
+
+    window.borrarRegistro = (docId) => {
+        showModal("¿Borrar registro?", true, () => {
+            lista = lista.filter(item => item.id !== docId);
+            guardarLocal();
+            showToast("Registro borrado");
+        });
+    };
+
+    window.reiniciarAno = () => {
+        const year = new Date().getFullYear();
+        showModal(`¿Deseas borrar TODOS los registros del año ${year}?`, true, () => {
+            setTimeout(() => {
+                showModal(`⚠️ ESTA ACCIÓN NO SE PUEDE DESHACER.`, true, () => {
+                    lista = lista.filter(item => new Date(item.fecha).getFullYear() !== year);
+                    guardarLocal();
+                    showToast("Año borrado");
+                });
+            }, 300);
+        });
+    };
+
+    window.mostrar = () => {
+        const cont = document.getElementById("lista");
+        cont.innerHTML = "";
+        let tExtraAcumulado = 0;
+        let tNegativasVisual = 0;
+        let tExceso = 0;
+        
+        const filter = document.getElementById("buscador").value.toLowerCase();
+        const meses = {};
+
+        lista.forEach(item => {
+            const f = new Date(item.fecha);
+            const fFmt = `${String(f.getDate()).padStart(2,'0')}/${String(f.getMonth()+1).padStart(2,'0')}/${f.getFullYear()}`;
+            
+            if (filter && !item.desc.toLowerCase().includes(filter) && !fFmt.includes(filter)) return;
+
+            if (item.tipoOriginal === "negativa") {
+                tNegativasVisual += item.horasCalculadas; 
+            } else if (item.tipoOriginal === "exceso") {
+                tExceso += item.horasCalculadas;
+            } else {
+                tExtraAcumulado += item.horasCalculadas;
+            }
+
+            const mKey = `${f.getFullYear()}-${String(f.getMonth()+1).padStart(2,'0')}`;
+            if (!meses[mKey]) {
+                meses[mKey] = { 
+                    label: f.toLocaleString('es-ES', { month: 'long', year: 'numeric' }), 
+                    items: [], 
+                    vence: "" 
+                };
+            }
+            
+            if (item.tipoOriginal !== "negativa" && item.tipoOriginal !== "exceso") {
+                let c = new Date(f.getFullYear(), f.getMonth() + 4, 1);
+                meses[mKey].vence = c.toLocaleString('es-ES', { month: 'short', year: '2-digit' });
+            }
+            meses[mKey].items.push({ ...item, fFmt });
+        });
+
+        Object.keys(meses).sort((a,b) => b.localeCompare(a)).forEach(k => {
+            const m = meses[k];
+            cont.innerHTML += `<div class="mes-titulo"><span style="text-transform: capitalize;">${m.label}</span>${m.vence ? '<span>Vence: '+m.vence+'</span>' : ''}</div>`;
+            m.items.forEach(i => {
+                const colors = { extra: 'verde', festiva: 'verde', nocturna: 'verde', negativa: 'rojo', exceso: 'amarillo' };
+                cont.innerHTML += `
+                    <div class="item">
+                        <div style="max-width: 70%">
+                            <span class="tipo ${colors[i.tipoOriginal]}">${i.tipoOriginal.toUpperCase()}</span><br>
+                            <b>${i.horasOriginales}h</b> <small style="opacity:0.6">(${i.horasCalculadas.toFixed(2)}h total)</small><br>
+                            <small style="font-size: 11px; display:block; margin-top:2px">${i.fFmt} - ${i.desc}</small>
+                        </div>
+                        <button class="borrar-btn" onclick="borrarRegistro('${i.id}')">Borrar</button>
+                    </div>`;
+            });
+        });
+
+        document.getElementById("totalExtra").innerText = tExtraAcumulado.toFixed(2);
+        document.getElementById("totalNeg").innerText = tNegativasVisual.toFixed(2);
+        document.getElementById("totalExceso").innerText = tExceso.toFixed(2);
+    };
+
+    window.exportarJSON = () => {
+        if (lista.length === 0) return;
+        const dataStr = JSON.stringify(lista, null, 2);
+        const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+        const linkElement = document.createElement('a');
+        linkElement.setAttribute('href', dataUri);
+        linkElement.setAttribute('download', `Copia_Horas_${new Date().toISOString().split('T')[0]}.json`);
+        linkElement.click();
+    };
+
+    window.importarJSON = (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const importedData = JSON.parse(e.target.result);
+                lista = importedData;
+                guardarLocal();
+                showToast("Importado");
+            } catch (err) { showModal("Error al importar."); }
+        };
+        reader.readAsText(file);
+    };
+
+    window.toggleModo = () => {
+        document.body.classList.toggle("dark-mode");
+        const isDark = document.body.classList.contains("dark-mode");
+        localStorage.setItem("modo", isDark ? "dark" : "light");
+        updateModoBtnLabel();
+    };
+
+    window.toggleManual = () => {
+        const m = document.getElementById("manualModal");
+        m.style.display = (m.style.display === "flex") ? "none" : "flex";
+    };
+
+    function updateModoBtnLabel() {
+        const isDark = document.body.classList.contains("dark-mode");
+        document.getElementById("modoBtn").innerText = isDark ? "☀️ Claro" : "🌙 Oscuro";
+    }
+
+    if (localStorage.getItem("modo") === "dark") document.body.classList.add("dark-mode");
+    updateModoBtnLabel();
+
+    function showToast(t) {
+        const m = document.getElementById("mensaje");
+        m.innerText = t + " ✅"; m.style.display = "block";
+        setTimeout(() => m.style.display = "none", 2000);
+    }
+
+    let mCb = null;
+    window.showModal = (msg, conf = false, cb = null) => {
+        document.getElementById("modalText").innerText = msg;
+        document.getElementById("customModal").style.display = "flex";
+        document.getElementById("modalBtnCancel").style.display = conf ? "block" : "none";
+        mCb = cb;
+    };
+    document.getElementById("modalBtnOk").onclick = () => {
+        document.getElementById("customModal").style.display = "none";
+        if (mCb) mCb();
+    };
+    document.getElementById("modalBtnCancel").onclick = () => {
+        document.getElementById("customModal").style.display = "none";
+    };
+
+    window.exportarPDF = () => {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // Título principal
+        doc.setFontSize(18);
+        doc.setTextColor(40);
+        doc.text("REGISTRO HORAS MD", 14, 20);
+        
+        // Calcular Totales para el resumen
+        let tExtra = 0;
+        let tNeg = 0;
+        let tExc = 0;
+        lista.forEach(i => {
+            if (i.tipoOriginal === "negativa") tNeg += i.horasCalculadas;
+            else if (i.tipoOriginal === "exceso") tExc += i.horasCalculadas;
+            else tExtra += i.horasCalculadas;
+        });
+
+        // Cuadro de Resumen en la parte superior
+        doc.setFontSize(11);
+        doc.setTextColor(60);
+        doc.text("RESUMEN GENERAL", 14, 32);
+        
+        doc.autoTable({
+            startY: 35,
+            theme: 'grid',
+            headStyles: { fillColor: [240, 240, 240], textColor: [50, 50, 50], fontStyle: 'bold' },
+            head: [['EXTRA ACUMULADAS', 'NEGATIVAS', 'EXCESO']],
+            body: [[tExtra.toFixed(2) + " h", tNeg.toFixed(2) + " h", tExc.toFixed(2) + " h"]],
+            margin: { left: 14, right: 14 }
+        });
+
+        // Tabla de detalles
+        const finalY = doc.lastAutoTable.finalY || 35;
+        doc.setFontSize(11);
+        doc.text("DETALLE DE REGISTROS", 14, finalY + 15);
+
+        const tableData = lista.map(i => [
+            i.fecha.split('-').reverse().join('/'), 
+            i.tipoOriginal.toUpperCase(), 
+            i.horasOriginales.toFixed(2), 
+            i.horasCalculadas.toFixed(2), 
+            i.desc
+        ]);
+
+        doc.autoTable({ 
+            startY: finalY + 20, 
+            head: [['Fecha', 'Tipo', 'Horas Base', 'Horas Calc.', 'Observaciones']], 
+            body: tableData,
+            headStyles: { fillColor: [0, 123, 255] }, // Azul primario
+            alternateRowStyles: { fillColor: [245, 245, 245] },
+            margin: { left: 14, right: 14 }
+        });
+
+        doc.save(`Historial_Horas_MD_${new Date().toLocaleDateString()}.pdf`);
+    };
+
+    document.getElementById('fecha').valueAsDate = new Date();
+    mostrar();
+</script>
+</body>
+</html>
