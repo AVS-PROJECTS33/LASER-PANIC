@@ -380,10 +380,21 @@
             db = getFirestore(app);
 
             const initAuth = async () => {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
+                try {
+                    // Intentar token inicial si se da en un entorno compatible
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        try {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } catch(e) {
+                            // Falla porque el token no es para el proyecto custom del usuario, forzamos anónimo
+                            await signInAnonymously(auth);
+                        }
+                    } else {
+                        // Forzamos conexión anónima en tu proyecto web personal
+                        await signInAnonymously(auth);
+                    }
+                } catch(err) {
+                    console.error("Error iniciando auth:", err);
                 }
             };
             initAuth();
@@ -600,7 +611,8 @@
             currentStarColor = theme.starColor;
             
             ui.worldLvl.style.color = theme.textColor;
-            ui.worldLvl.style.textShadow = theme.textShadow;
+            // Añadido un contorno negro sólido para asegurar la lectura en cualquier fondo
+            ui.worldLvl.style.textShadow = `1px 1px 2px #000, -1px -1px 2px #000, 1px -1px 2px #000, -1px 1px 2px #000, ${theme.textShadow}`;
             
             let lvlInWorld = ((level - 1) % 10) + 1;
             ui.worldLvl.innerText = `M${worldIndex + 1} - Nvl ${lvlInWorld}`;
@@ -978,8 +990,6 @@
         }
 
         function drawBalls() {
-            if (isPaddleExploding) return;
-
             let baseColor = '#ffffff';
             let shadowColor = '#ffffff';
 
@@ -1408,37 +1418,6 @@
                         vrot: (Math.random() - 0.5) * 0.4
                     });
                 }
-                
-                function drawExplosionFrame() {
-                    if(!isPaddleExploding) return;
-                    drawBackground();
-                    drawBricks();
-                    drawDrops();
-                    
-                    for (let i = paddleParticles.length - 1; i >= 0; i--) {
-                        let p = paddleParticles[i];
-                        p.x += p.vx;
-                        p.y += p.vy;
-                        p.vy += 0.5;
-                        p.rot += p.vrot;
-                        p.life -= 0.015;
-
-                        if (p.life <= 0) {
-                            paddleParticles.splice(i, 1);
-                            continue;
-                        }
-                        ctx.globalAlpha = p.life;
-                        ctx.fillStyle = p.color;
-                        ctx.save();
-                        ctx.translate(p.x, p.y);
-                        ctx.rotate(p.rot);
-                        ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
-                        ctx.restore();
-                    }
-                    ctx.globalAlpha = 1.0;
-                    if(isPaddleExploding) requestAnimationFrame(drawExplosionFrame);
-                }
-                drawExplosionFrame();
 
                 explosionTimeout = setTimeout(() => {
                     lives--;
@@ -1478,9 +1457,34 @@
 
             drawBackground();
 
-            if (!isPaddleExploding) {
-                drawBricks();
-                drawDrops();
+            // Dibujar los bloques de fondo incluso si la raqueta está explotando
+            drawBricks();
+            drawDrops();
+
+            if (isPaddleExploding) {
+                // Dibujar solo partículas de explosión y detener la raqueta
+                for (let i = paddleParticles.length - 1; i >= 0; i--) {
+                    let p = paddleParticles[i];
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += 0.5;
+                    p.rot += p.vrot;
+                    p.life -= 0.015;
+
+                    if (p.life <= 0) {
+                        paddleParticles.splice(i, 1);
+                        continue;
+                    }
+                    ctx.globalAlpha = p.life;
+                    ctx.fillStyle = p.color;
+                    ctx.save();
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate(p.rot);
+                    ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+                    ctx.restore();
+                }
+                ctx.globalAlpha = 1.0;
+            } else {
                 drawBullets(); 
                 drawPaddle();
                 drawBalls();
