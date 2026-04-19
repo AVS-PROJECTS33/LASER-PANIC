@@ -268,7 +268,7 @@
         <div class="header">
             <div class="stat-box pause-btn" id="pause-game-btn" title="Pausar y Menú">☰</div>
             <div class="stat-box score">Pts: <span id="score-display">0</span></div>
-            <div class="stat-box level-text" id="world-level-display">Mundo 1 - Nvl 1</div>
+            <div class="stat-box level-text" id="world-level-display">MUNDO 1 - NIVEL 1</div>
             <div class="stat-box lives">Vidas: <span id="lives-display">3</span></div>
         </div>
 
@@ -615,7 +615,7 @@
             ui.worldLvl.style.textShadow = `1px 1px 2px #000, -1px -1px 2px #000, 1px -1px 2px #000, -1px 1px 2px #000, ${theme.textShadow}`;
             
             let lvlInWorld = ((level - 1) % 10) + 1;
-            ui.worldLvl.innerText = `M${worldIndex + 1} - Nvl ${lvlInWorld}`;
+            ui.worldLvl.innerText = `MUNDO ${worldIndex + 1} - NIVEL ${lvlInWorld}`;
             ui.continueInfo.innerText = `Progreso guardado: Nivel ${maxLevelUnlocked}`;
         }
 
@@ -781,6 +781,9 @@
             const h = 28;
             const offsetY = 70;
 
+            // Calculamos un color base aleatorio para este nivel
+            const levelBaseHue = Math.floor(Math.random() * 360);
+
             for (let r = 0; r < rows; r++) {
                 bricks[r] = [];
                 for (let c = 0; c < cols; c++) {
@@ -802,14 +805,19 @@
                         }
 
                         let pUp = null;
+                        // Reducimos la probabilidad de que salgan estrellas (al 15%)
                         if (Math.random() > 0.85) {
                             const keys = Object.keys(powerUpTypes);
                             keys.push('life', 'life', 'life', 'life'); 
                             pUp = keys[Math.floor(Math.random() * keys.length)];
+                            
+                            // Forzamos a que el bloque estrella tenga siempre 1 de vida
+                            hp = 1;
                         }
 
-                        const randomHue = Math.floor(Math.random() * 360);
-                        const blockColor = `hsl(${randomHue}, 80%, 60%)`;
+                        // El color ahora depende de la columna (c) creando un gradiente armónico
+                        const colHue = (levelBaseHue + (c * (360 / cols))) % 360;
+                        const blockColor = `hsl(${colHue}, 80%, 60%)`;
 
                         bricks[r].push({
                             x: padding + (c * (w + padding)),
@@ -921,8 +929,8 @@
 
                                 if (brick.hp <= 0 && brick.powerUp) {
                                     drops.push({
-                                        x: brick.x + brick.w/2 - 17.5, y: brick.y + brick.h,
-                                        w: 35, h: 22, type: brick.powerUp, speed: 1.5 
+                                        x: brick.x + brick.w/2 - 22.5, y: brick.y + brick.h,
+                                        w: 45, h: 30, type: brick.powerUp, speed: 1.5 
                                     });
                                 }
                                 hit = true;
@@ -1109,10 +1117,10 @@
                 ctx.fill();
 
                 ctx.fillStyle = info.textC;
-                ctx.font = 'bold 12px Arial';
+                ctx.font = 'bold 16px Arial';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(info.symbol, drop.x + drop.w/2, drop.y + drop.h/2 + 1);
+                ctx.fillText(info.symbol, drop.x + drop.w/2, drop.y + drop.h/2 + 2);
             });
         }
 
@@ -1341,9 +1349,9 @@
 
                                 if (brick.hp <= 0 && brick.powerUp) {
                                     drops.push({
-                                        x: brick.x + brick.w/2 - 17.5,
+                                        x: brick.x + brick.w/2 - 22.5,
                                         y: brick.y + brick.h,
-                                        w: 35, h: 22,
+                                        w: 45, h: 30,
                                         type: brick.powerUp,
                                         speed: 1.5
                                     });
@@ -1380,8 +1388,8 @@
 
                             if (brick.hp <= 0 && brick.powerUp) {
                                 drops.push({
-                                    x: brick.x + brick.w/2 - 17.5, y: brick.y + brick.h,
-                                    w: 35, h: 22, type: brick.powerUp, speed: 1.5
+                                    x: brick.x + brick.w/2 - 22.5, y: brick.y + brick.h,
+                                    w: 45, h: 30, type: brick.powerUp, speed: 1.5
                                 });
                             }
                         }
@@ -1572,12 +1580,14 @@
         function showVictory() {
             isPlaying = false;
             cancelAnimationFrame(animationId);
+            switchMusic('menu');
             ui.victory.classList.add('active');
         }
 
         function showGameBeaten() {
             isPlaying = false;
             cancelAnimationFrame(animationId);
+            switchMusic('menu');
             document.getElementById('absolute-final-score').innerText = score;
             ui.beaten.classList.add('active');
         }
@@ -1598,38 +1608,62 @@
         });
 
         function mouseMoveHandler(e) {
+            if (!isPlaying) return;
             const rect = canvas.getBoundingClientRect();
             const scaleX = GAME_WIDTH / rect.width; 
             const relativeX = (e.clientX - rect.left) * scaleX;
-            if (relativeX > 0 && relativeX < GAME_WIDTH) {
-                paddle.x = relativeX - paddle.width / 2;
-            }
+            
+            // Permite mover la raqueta incluso si el ratón está por debajo o fuera del lienzo
+            let newX = relativeX - paddle.width / 2;
+            if (newX < 0) newX = 0;
+            if (newX > GAME_WIDTH - paddle.width) newX = GAME_WIDTH - paddle.width;
+            paddle.x = newX;
         }
         document.addEventListener('mousemove', mouseMoveHandler);
 
         document.addEventListener('mousedown', (e) => {
             if(e.target.tagName !== 'BUTTON' && e.target.tagName !== 'INPUT' && !e.target.classList.contains('pause-btn')) {
-                launchBall();
-                shoot(); 
+                if (isPlaying) {
+                    launchBall();
+                    shoot(); 
+                }
             }
         });
 
-        canvas.addEventListener('touchmove', (e) => {
-            if(isPlaying) e.preventDefault(); 
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = GAME_WIDTH / rect.width;
-            const touch = e.touches[0]; 
-            const relativeX = (touch.clientX - rect.left) * scaleX;
-            if (relativeX > 0 && relativeX < GAME_WIDTH) {
-                paddle.x = relativeX - paddle.width / 2;
+        // Cambiado de 'canvas' a 'document' para capturar toques en toda la pantalla
+        document.addEventListener('touchmove', (e) => {
+            if(isPlaying) {
+                e.preventDefault(); // Evita hacer scroll mientras juegas
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = GAME_WIDTH / rect.width;
+                const touch = e.touches[0]; 
+                const relativeX = (touch.clientX - rect.left) * scaleX;
+                
+                let newX = relativeX - paddle.width / 2;
+                if (newX < 0) newX = 0;
+                if (newX > GAME_WIDTH - paddle.width) newX = GAME_WIDTH - paddle.width;
+                paddle.x = newX;
             }
         }, { passive: false });
 
-        canvas.addEventListener('touchstart', (e) => {
-            if(isPlaying) e.preventDefault();
-            if(!e.target.classList.contains('pause-btn')) {
-                launchBall();
-                shoot();
+        // Cambiado a 'document' para poder tocar y disparar desde cualquier sitio
+        document.addEventListener('touchstart', (e) => {
+            if(isPlaying) {
+                if(e.target.tagName !== 'BUTTON' && e.target.tagName !== 'INPUT' && !e.target.classList.contains('pause-btn')) {
+                    e.preventDefault();
+                    launchBall();
+                    shoot();
+                    
+                    // Actualiza la posición instantáneamente al tocar para mayor precisión
+                    const rect = canvas.getBoundingClientRect();
+                    const scaleX = GAME_WIDTH / rect.width;
+                    const touch = e.touches[0]; 
+                    const relativeX = (touch.clientX - rect.left) * scaleX;
+                    let newX = relativeX - paddle.width / 2;
+                    if (newX < 0) newX = 0;
+                    if (newX > GAME_WIDTH - paddle.width) newX = GAME_WIDTH - paddle.width;
+                    paddle.x = newX;
+                }
             }
         }, { passive: false });
 
