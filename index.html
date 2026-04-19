@@ -592,7 +592,7 @@
         const paddle = {
             width: PADDLE_BASE_WIDTH, height: 18,
             x: GAME_WIDTH / 2 - PADDLE_BASE_WIDTH/2, y: GAME_HEIGHT - 40,
-            speed: 10, dx: 0,
+            speed: 15, dx: 0,
             color: '#38bdf8'
         };
 
@@ -869,7 +869,7 @@
                 x: paddle.x + paddle.width / 2,
                 y: paddle.y - 12,
                 radius: 10,
-                speed: 6 + (level * 0.1), 
+                speed: 11 + (level * 0.15), 
                 dx: 0, dy: 0,
                 active: false,
                 history: [], 
@@ -955,7 +955,7 @@
                                 if (brick.hp <= 0 && brick.powerUp) {
                                     drops.push({
                                         x: brick.x + brick.w/2 - 22.5, y: brick.y + brick.h,
-                                        w: 45, h: 30, type: brick.powerUp, speed: 1.5 
+                                        w: 45, h: 30, type: brick.powerUp, speed: 3 
                                     });
                                 }
                                 hit = true;
@@ -1326,7 +1326,7 @@
                                         y: brick.y + brick.h,
                                         w: 45, h: 30,
                                         type: brick.powerUp,
-                                        speed: 1.5
+                                        speed: 3
                                     });
                                 }
 
@@ -1362,7 +1362,7 @@
                             if (brick.hp <= 0 && brick.powerUp) {
                                 drops.push({
                                     x: brick.x + brick.w/2 - 22.5, y: brick.y + brick.h,
-                                    w: 45, h: 30, type: brick.powerUp, speed: 1.5
+                                    w: 45, h: 30, type: brick.powerUp, speed: 3
                                 });
                             }
                         }
