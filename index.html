@@ -607,7 +607,7 @@
             color: '#38bdf8'
         };
 
-        let balls = [], bricks = [], drops = [], bullets = [], stars = [], paddleParticles = [];
+        let balls = [], bricks = [], drops = [], bullets = [], stars = [], paddleParticles = [], lightnings = [];
         let isPaddleExploding = false;
         let explosionTimeout = null;
         let currentStarColor = "255, 255, 255";
@@ -627,7 +627,9 @@
             expand: { timer: 0, max: 900, color: '#34d399', label: '↔️ GRANDE' },   
             shrink: { timer: 0, max: 420, color: '#ef4444', label: '>< PEQUEÑO' },  
             gun: { timer: 0, max: 900, color: '#a855f7', label: '🔫 PISTOLAS' },      
-            magnet: { timer: 0, max: 1500, color: '#f43f5e', label: '🧲 IMÁN' }     
+            magnet: { timer: 0, max: 1500, color: '#f43f5e', label: '🧲 IMÁN' },
+            sayan: { timer: 0, max: 200, color: '#fde047', label: '💥 SUPER SAYAN' },
+            pokeball: { timer: 0, max: 900, color: '#facc15', label: '⚡ POKEBALL' }
         };
 
         const powerUpTypes = {
@@ -640,7 +642,9 @@
             'shrink': { symbol: '><', color: '#ef4444', textC: '#fff' },
             'life': { symbol: '1UP', color: '#ec4899', textC: '#fff' },
             'gun': { symbol: '🔫', color: '#a855f7', textC: '#fff' },
-            'magnet': { symbol: '🧲', color: '#f43f5e', textC: '#fff' }
+            'magnet': { symbol: '🧲', color: '#f43f5e', textC: '#fff' },
+            'sayan': { symbol: '悟', color: '#f97316', textC: '#fde047' },
+            'pokeball': { symbol: '🔴', color: '#ef4444', textC: '#ffffff' }
         };
 
         // --- MUNDO/UI ---
@@ -779,9 +783,10 @@
 
                         let pUp = null;
                         if (Math.random() > 0.85) {
-                            const keys = Object.keys(powerUpTypes);
+                            const keys = Object.keys(powerUpTypes).filter(k => k !== 'sayan');
                             keys.push('life', 'life', 'life', 'life'); 
-                            pUp = keys[Math.floor(Math.random() * keys.length)];
+                            if (Math.random() > 0.97) { pUp = 'sayan'; } // 3% extra rare chance
+                            else { pUp = keys[Math.floor(Math.random() * keys.length)]; }
                             hp = 1;
                         }
 
@@ -894,27 +899,105 @@
             }
         }
 
+        function drawLightnings() {
+            if (effects.pokeball.timer > 0 && !isPaddleExploding) {
+                ctx.font = '28px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('🐭⚡', paddle.x + paddle.width / 2, paddle.y - 20);
+            }
+
+            lightnings.forEach(l => {
+                ctx.beginPath();
+                ctx.moveTo(l.startX, l.startY);
+                let steps = 6;
+                let dx = (l.endX - l.startX) / steps;
+                let dy = (l.endY - l.startY) / steps;
+                for(let j=1; j<steps; j++) {
+                    ctx.lineTo(l.startX + dx*j + (Math.random()-0.5)*30, l.startY + dy*j + (Math.random()-0.5)*30);
+                }
+                ctx.lineTo(l.endX, l.endY);
+                ctx.strokeStyle = '#fef08a';
+                ctx.lineWidth = 3;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = '#facc15';
+                ctx.stroke();
+            });
+            ctx.shadowBlur = 0;
+        }
+
+        function updateLightnings() {
+            if (effects.pokeball.timer > 0 && isPlaying && !isPaddleExploding) {
+                if (effects.pokeball.timer % 30 === 0) {
+                    let activeBricksList = [];
+                    for (let r = 0; r < bricks.length; r++) {
+                        for (let c = 0; c < bricks[r].length; c++) {
+                            if (bricks[r][c] && bricks[r][c].hp > 0) activeBricksList.push(bricks[r][c]);
+                        }
+                    }
+                    if (activeBricksList.length > 0) {
+                        let target = activeBricksList[Math.floor(Math.random() * activeBricksList.length)];
+                        target.hp -= 2; 
+                        score += 15;
+                        ui.score.innerText = score;
+                        playSound('brick');
+
+                        lightnings.push({
+                            startX: paddle.x + paddle.width / 2,
+                            startY: paddle.y - 25,
+                            endX: target.x + target.w / 2,
+                            endY: target.y + target.h / 2,
+                            life: 15
+                        });
+
+                        if (target.hp <= 0 && target.powerUp) {
+                            drops.push({ x: target.x + target.w/2 - 22.5, y: target.y + target.h, w: 45, h: 30, type: target.powerUp, speed: 3 });
+                        }
+                    }
+                }
+            }
+            for (let i = lightnings.length - 1; i >= 0; i--) {
+                lightnings[i].life--;
+                if (lightnings[i].life <= 0) lightnings.splice(i, 1);
+            }
+        }
+
         function drawBalls() {
             let baseColor = '#ffffff';
-            if (effects.fireball.timer > 0) baseColor = '#ffed4a';
+            if (effects.sayan.timer > 0) baseColor = '#fde047';
+            else if (effects.fireball.timer > 0) baseColor = '#ffed4a';
             else if (effects.poison.timer > 0) baseColor = '#bbf7d0';
+
+            if (effects.sayan.timer > 0) {
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = '#eab308';
+            }
 
             balls.forEach(ball => {
                 if (!ball.attached) {
                     for (let i = 0; i < ball.history.length; i++) {
                         let pt = ball.history[i];
                         let opacity = 1 - (i / ball.history.length);
-                        ctx.fillStyle = `rgba(255, 255, 255, ${opacity * 0.3})`;
-                        let size = ball.radius * 1.6 * opacity;
-                        ctx.fillRect(pt.x - size/2, pt.y - size/2, size, size);
+                        
+                        if (effects.sayan.timer > 0) {
+                            ctx.fillStyle = `rgba(253, 224, 71, ${opacity * 0.6})`;
+                            let size = ball.radius * 2.5 * opacity;
+                            ctx.beginPath(); ctx.arc(pt.x, pt.y, size/2, 0, PI2); ctx.fill();
+                        } else {
+                            ctx.fillStyle = `rgba(255, 255, 255, ${opacity * 0.3})`;
+                            let size = ball.radius * 1.6 * opacity;
+                            ctx.fillRect(pt.x - size/2, pt.y - size/2, size, size);
+                        }
                     }
                 }
                 ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.radius, 0, PI2); ctx.fillStyle = baseColor; ctx.fill();
 
                 if (ball.attached && isPlaying) {
+                    ctx.shadowBlur = 0;
                     ctx.fillStyle = 'rgba(255, 255, 255, 0.7)'; ctx.font = '16px Arial'; ctx.textAlign = 'center'; ctx.fillText("Toca para lanzar", GAME_WIDTH / 2, paddle.y - 40);
                 }
             });
+            ctx.shadowBlur = 0;
         }
 
         function drawBricks() {
@@ -951,16 +1034,25 @@
         function drawDrops() {
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.font = 'bold 16px Arial';
 
             drops.forEach(drop => {
                 let info = powerUpTypes[drop.type];
+                
+                if (drop.type === 'sayan') {
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = '#fde047';
+                }
+                
                 ctx.fillStyle = info.color;
                 ctx.fillRect(drop.x, drop.y, drop.w, drop.h);
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
                 ctx.fillRect(drop.x + 2, drop.y + 2, drop.w - 4, drop.h * 0.4);
+                
                 ctx.fillStyle = info.textC;
+                ctx.font = drop.type === 'sayan' || drop.type === 'pokeball' ? 'bold 20px Arial' : 'bold 16px Arial';
                 ctx.fillText(info.symbol, drop.x + drop.w/2, drop.y + drop.h/2 + 2);
+                
+                ctx.shadowBlur = 0;
             });
         }
 
@@ -1017,6 +1109,19 @@
                     if (baseBall.attached) { isAttached = true; attachOff = Math.random() * paddle.width; }
                     balls.push({ x: isAttached ? paddle.x + attachOff : baseBall.x, y: isAttached ? paddle.y - baseBall.radius - 2 : baseBall.y, radius: baseBall.radius, speed: baseBall.speed, dx: newDx, dy: newDy, active: !isAttached, history: [], attached: isAttached, attachOffset: attachOff });
                 }
+            } else if (type === 'sayan') {
+                effects.sayan.timer = effects.sayan.max;
+                if (balls.length > 0) {
+                    let baseBall = balls.find(b => !b.attached) || balls[0];
+                    for (let i = 0; i < 10; i++) {
+                        let angle = (Math.PI * 2 * i) / 10;
+                        let newDx = baseBall.speed * 1.2 * Math.cos(angle);
+                        let newDy = baseBall.speed * 1.2 * Math.sin(angle);
+                        balls.push({ x: baseBall.x, y: baseBall.y, radius: baseBall.radius, speed: baseBall.speed, dx: newDx, dy: newDy, active: true, history: [], attached: false, attachOffset: 0 });
+                    }
+                }
+            } else if (type === 'pokeball') {
+                effects.pokeball.timer = effects.pokeball.max;
             } else if (type === 'life') { 
                 lives++; ui.lives.innerText = lives; saveGameState(); 
             }
@@ -1076,13 +1181,13 @@
                             let distance = Math.sqrt((distX*distX) + (distY*distY));
 
                             if (distance <= b.radius) {
-                                brick.hp -= (effects.fireball.timer > 0 ? 100 : 1); playSound('brick');
+                                brick.hp -= (effects.fireball.timer > 0 || effects.sayan.timer > 0 ? 100 : 1); playSound('brick');
                                 if (effects.poison.timer > 0 && brick.hp > 0) brick.poisoned = true;
                                 score += 10; ui.score.innerText = score;
 
                                 if (brick.hp <= 0 && brick.powerUp) drops.push({ x: brick.x + brick.w/2 - 22.5, y: brick.y + brick.h, w: 45, h: 30, type: brick.powerUp, speed: 3 });
 
-                                if (effects.fireball.timer <= 0) {
+                                if (effects.fireball.timer <= 0 && effects.sayan.timer <= 0) {
                                     if (b.radius - Math.abs(distX) < b.radius - Math.abs(distY)) { b.dx *= -1; b.x = b.x < brick.x ? brick.x - b.radius : brick.x + brick.w + b.radius; } 
                                     else { b.dy *= -1; b.y = b.y < brick.y ? brick.y - b.radius : brick.y + brick.h + b.radius; }
                                 }
@@ -1130,7 +1235,7 @@
 
         function resetAllEffects() {
             for (const key in effects) effects[key].timer = 0;
-            drops = []; bullets = []; renderHUD();
+            drops = []; bullets = []; lightnings = []; renderHUD();
         }
 
         // --- BUCLE PRINCIPAL ---
@@ -1149,7 +1254,7 @@
                 }
                 ctx.globalAlpha = 1.0;
             } else {
-                drawBullets(); drawPaddle(); drawBalls(); movePaddle(); updateDrops(); updateBullets(); updateBalls(updateEffects());
+                drawBullets(); drawLightnings(); drawPaddle(); drawBalls(); movePaddle(); updateDrops(); updateBullets(); updateLightnings(); updateBalls(updateEffects());
             }
             animationId = requestAnimationFrame(update);
         }
