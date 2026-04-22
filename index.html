@@ -568,6 +568,12 @@
         ui.score.innerText = score;
         ui.lives.innerText = lives;
 
+        // NUEVA FUNCIÓN MATEMÁTICA ESTRICTA PARA LOS PUNTOS: Nivel * 10 (con tope en Nivel 10 como pediste)
+        function obtenerPuntosBloque() {
+            let nivelCalculo = Math.min(level, 10);
+            return nivelCalculo * 10;
+        }
+
         function saveGameState() {
             if (lives > 0) {
                 localStorage.setItem('laserPanicGameState', JSON.stringify({ level: level, lives: lives, score: safeScore }));
@@ -874,7 +880,7 @@
                         if (brick && brick.hp > 0) {
                             if (b.x > brick.x && b.x < brick.x + brick.w && b.y > brick.y && b.y < brick.y + brick.h) {
                                 brick.hp -= 1; 
-                                score += (level * 10); 
+                                score += obtenerPuntosBloque(); 
                                 ui.score.innerText = score; 
                                 playSound('brick');
                                 if (brick.hp <= 0 && brick.powerUp) drops.push({ x: brick.x + brick.w/2 - 22.5, y: brick.y + brick.h, w: 45, h: 30, type: brick.powerUp, speed: 3 });
@@ -921,7 +927,7 @@
                             if (h.x + h.radius > brick.x && h.x - h.radius < brick.x + brick.w &&
                                 h.y + h.radius > brick.y && h.y - h.radius < brick.y + brick.h) {
                                 brick.hp = 0; 
-                                score += (level * 10); 
+                                score += obtenerPuntosBloque(); 
                                 ui.score.innerText = score; 
                                 playSound('brick');
                                 if (brick.powerUp) drops.push({ x: brick.x + brick.w/2 - 22.5, y: brick.y + brick.h, w: 45, h: 30, type: brick.powerUp, speed: 3 });
@@ -990,7 +996,7 @@
                     if (activeBricksList.length > 0) {
                         let target = activeBricksList[Math.floor(Math.random() * activeBricksList.length)];
                         target.hp -= 2; 
-                        score += (level * 10);
+                        score += obtenerPuntosBloque();
                         ui.score.innerText = score;
                         playSound('brick');
 
@@ -1220,7 +1226,7 @@
         }
 
         function activatePowerUp(type) {
-            // Unificado a 50 fijos para evitar subidas de puntuación extremas (solo el cogerlo, los bloques dan lo normal)
+            // El poder da 50 puntos fijos para no volverse loco en la puntuación total y confundir al usuario
             score += 50; ui.score.innerText = score;
             
             if (type === 'multiball') {
@@ -1314,7 +1320,7 @@
                                     let brick = bricks[r][c];
                                     if (brick && brick.hp > 0 && b.x > brick.x && b.x < brick.x + brick.w) {
                                         brick.hp -= 2; 
-                                        score += (level * 10); 
+                                        score += Math.floor(obtenerPuntosBloque() / 2); // Da la mitad de puntos xq destruye muchos
                                         ui.score.innerText = score;
                                         if (brick.hp <= 0 && brick.powerUp) drops.push({ x: brick.x + brick.w/2 - 22.5, y: brick.y + brick.h, w: 45, h: 30, type: brick.powerUp, speed: 3 });
                                     }
@@ -1375,7 +1381,7 @@
                                             if (distX*distX + distY*distY <= dag.radius*dag.radius) {
                                                 brick.hp -= 100;
                                                 playSound('brick');
-                                                score += (level * 10); 
+                                                score += obtenerPuntosBloque(); 
                                                 ui.score.innerText = score;
                                                 if (brick.powerUp) drops.push({ x: brick.x + brick.w/2 - 22.5, y: brick.y + brick.h, w: 45, h: 30, type: brick.powerUp, speed: 3 });
                                             }
@@ -1402,7 +1408,7 @@
                                         brick.hp -= (effects.fireball.timer > 0 || effects.sayan.timer > 0 || effects.infinito.timer > 0 ? 100 : 1); 
                                         playSound('brick');
                                         if (effects.poison.timer > 0 && brick.hp > 0) brick.poisoned = true;
-                                        score += (level * 10); 
+                                        score += obtenerPuntosBloque(); 
                                         ui.score.innerText = score;
 
                                         if (brick.hp <= 0 && brick.powerUp) drops.push({ x: brick.x + brick.w/2 - 22.5, y: brick.y + brick.h, w: 45, h: 30, type: brick.powerUp, speed: 3 });
@@ -1442,7 +1448,9 @@
                     if (brick && brick.hp > 0 && brick.poisoned) {
                         brick.poisonTimer++;
                         if (brick.poisonTimer >= 30) { 
-                            brick.hp -= 1; brick.poisonTimer = 0; score += (level * 10); ui.score.innerText = score;
+                            brick.hp -= 1; brick.poisonTimer = 0; 
+                            score += Math.floor(obtenerPuntosBloque() / 2); 
+                            ui.score.innerText = score;
                             if (brick.hp <= 0 && brick.powerUp) drops.push({ x: brick.x + brick.w/2 - 22.5, y: brick.y + brick.h, w: 45, h: 30, type: brick.powerUp, speed: 3 });
                         }
                     }
