@@ -568,10 +568,11 @@
         ui.score.innerText = score;
         ui.lives.innerText = lives;
 
-        // NUEVA FUNCIÓN MATEMÁTICA ESTRICTA PARA LOS PUNTOS: Nivel * 10 (con tope en Nivel 10 como pediste)
+        // NUEVA FUNCIÓN MATEMÁTICA ESTRICTA PARA LOS PUNTOS POR MUNDO
         function obtenerPuntosBloque() {
-            let nivelCalculo = Math.min(level, 10);
-            return nivelCalculo * 10;
+            let mundoActual = Math.floor((level - 1) / 10) + 1;
+            if (mundoActual > 10) mundoActual = 10;
+            return mundoActual * 10;
         }
 
         function saveGameState() {
