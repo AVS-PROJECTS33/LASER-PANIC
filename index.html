@@ -607,7 +607,7 @@
             color: '#38bdf8'
         };
 
-        let balls = [], bricks = [], drops = [], bullets = [], stars = [], paddleParticles = [], lightnings = [];
+        let balls = [], bricks = [], drops = [], bullets = [], stars = [], paddleParticles = [], lightnings = [], hadokens = [];
         let isPaddleExploding = false;
         let explosionTimeout = null;
         let currentStarColor = "255, 255, 255";
@@ -629,7 +629,9 @@
             gun: { timer: 0, max: 900, color: '#a855f7', label: '🔫 PISTOLAS' },      
             magnet: { timer: 0, max: 1500, color: '#f43f5e', label: '🧲 IMÁN' },
             sayan: { timer: 0, max: 200, color: '#fde047', label: '💥 SUPER SAYAN' },
-            pokeball: { timer: 0, max: 900, color: '#facc15', label: '⚡ POKEBALL' }
+            pokeball: { timer: 0, max: 900, color: '#facc15', label: '⚡ POKEBALL' },
+            infinito: { timer: 0, max: 900, color: '#818cf8', label: '∞ INFINITO' },
+            kamish: { timer: 0, max: 900, color: '#dc2626', label: '🗡️ IRA KAMISH' }
         };
 
         const powerUpTypes = {
@@ -644,7 +646,10 @@
             'gun': { symbol: '🔫', color: '#a855f7', textC: '#fff' },
             'magnet': { symbol: '🧲', color: '#f43f5e', textC: '#fff' },
             'sayan': { symbol: '悟', color: '#f97316', textC: '#fde047' },
-            'pokeball': { symbol: '🔴', color: '#ef4444', textC: '#ffffff' }
+            'pokeball': { symbol: '🔴', color: '#ef4444', textC: '#ffffff' },
+            'infinito': { symbol: '∞', color: '#818cf8', textC: '#ffffff' },
+            'hadoken': { symbol: '波動', color: '#0ea5e9', textC: '#ffffff' },
+            'kamish': { symbol: '🗡️', color: '#dc2626', textC: '#ffffff' }
         };
 
         // --- MUNDO/UI ---
@@ -785,7 +790,7 @@
                         if (Math.random() > 0.85) {
                             const keys = Object.keys(powerUpTypes).filter(k => k !== 'sayan');
                             keys.push('life', 'life', 'life', 'life'); 
-                            if (Math.random() > 0.97) { pUp = 'sayan'; } // 3% extra rare chance
+                            if (Math.random() > 0.97) { pUp = 'sayan'; } 
                             else { pUp = keys[Math.floor(Math.random() * keys.length)]; }
                             hp = 1;
                         }
@@ -880,6 +885,50 @@
             }
         }
 
+        function drawHadokens() {
+            hadokens.forEach(h => {
+                h.history.forEach((pos, idx) => {
+                    let opacity = idx / h.history.length;
+                    ctx.fillStyle = `rgba(56, 189, 248, ${opacity * 0.4})`;
+                    ctx.beginPath(); ctx.arc(pos.x, pos.y, h.radius * opacity, 0, PI2); ctx.fill();
+                });
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = h.color;
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath(); ctx.arc(h.x, h.y, h.radius, 0, PI2); ctx.fill();
+                ctx.fillStyle = h.color;
+                ctx.beginPath(); ctx.arc(h.x, h.y, h.radius * 0.8, 0, PI2); ctx.fill();
+                ctx.shadowBlur = 0;
+            });
+        }
+
+        function updateHadokens() {
+            for (let i = hadokens.length - 1; i >= 0; i--) {
+                let h = hadokens[i];
+                h.history.push({x: h.x, y: h.y});
+                if(h.history.length > 6) h.history.shift();
+                h.y -= h.speed;
+
+                if (h.y + h.radius < 0) { hadokens.splice(i, 1); continue; }
+
+                for (let r = 0; r < bricks.length; r++) {
+                    for (let c = 0; c < bricks[r].length; c++) {
+                        let brick = bricks[r][c];
+                        if (brick && brick.hp > 0) {
+                            if (h.x + h.radius > brick.x && h.x - h.radius < brick.x + brick.w &&
+                                h.y + h.radius > brick.y && h.y - h.radius < brick.y + brick.h) {
+                                brick.hp = 0; 
+                                score += 10; 
+                                ui.score.innerText = score; 
+                                playSound('brick');
+                                if (brick.powerUp) drops.push({ x: brick.x + brick.w/2 - 22.5, y: brick.y + brick.h, w: 45, h: 30, type: brick.powerUp, speed: 3 });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         function drawPaddle() {
             if (isPaddleExploding) return; 
             let pColor = effects.expand.timer > 0 ? '#34d399' : (effects.shrink.timer > 0 ? '#ef4444' : paddle.color);
@@ -965,8 +1014,21 @@
         function drawBalls() {
             let baseColor = '#ffffff';
             if (effects.sayan.timer > 0) baseColor = '#fde047';
+            else if (effects.infinito.timer > 0) baseColor = '#818cf8';
             else if (effects.fireball.timer > 0) baseColor = '#ffed4a';
             else if (effects.poison.timer > 0) baseColor = '#bbf7d0';
+
+            // Dibujar lineas de limite de infinito solo 1 vez
+            if (effects.infinito.timer > 0) {
+                ctx.strokeStyle = 'rgba(129, 140, 248, 0.4)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([10, 10]);
+                ctx.beginPath();
+                ctx.moveTo(0, GAME_HEIGHT / 2 - 100); ctx.lineTo(GAME_WIDTH, GAME_HEIGHT / 2 - 100);
+                ctx.moveTo(0, GAME_HEIGHT / 2 + 100); ctx.lineTo(GAME_WIDTH, GAME_HEIGHT / 2 + 100);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
 
             if (effects.sayan.timer > 0) {
                 ctx.shadowBlur = 20;
@@ -975,6 +1037,15 @@
 
             balls.forEach(ball => {
                 if (!ball.attached) {
+                    
+                    // Laser infinito individual
+                    if (effects.infinito.timer > 0) {
+                        ctx.fillStyle = 'rgba(129, 140, 248, 0.4)';
+                        ctx.fillRect(ball.x - ball.radius * 2, 0, ball.radius * 4, GAME_HEIGHT);
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                        ctx.fillRect(ball.x - ball.radius, 0, ball.radius * 2, GAME_HEIGHT);
+                    }
+
                     for (let i = 0; i < ball.history.length; i++) {
                         let pt = ball.history[i];
                         let opacity = 1 - (i / ball.history.length);
@@ -991,6 +1062,54 @@
                     }
                 }
                 ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.radius, 0, PI2); ctx.fillStyle = baseColor; ctx.fill();
+
+                // --- DIBUJAR DAGAS DE KAMISH ---
+                if (effects.kamish.timer > 0 && !ball.attached) {
+                    let orbitRadius = 35;
+                    let time = Date.now() / 100;
+                    for(let j=0; j<2; j++) {
+                        let angle = time + (j * Math.PI);
+                        let dx = ball.x + Math.cos(angle) * orbitRadius;
+                        let dy = ball.y + Math.sin(angle) * orbitRadius;
+
+                        ctx.save();
+                        ctx.translate(dx, dy);
+                        ctx.rotate(angle + Math.PI/2); 
+                        
+                        ctx.shadowBlur = 15;
+                        ctx.shadowColor = '#ef4444';
+                        
+                        // Fuego exterior
+                        ctx.fillStyle = '#dc2626';
+                        ctx.beginPath();
+                        ctx.moveTo(0, -12);
+                        ctx.lineTo(6, 6);
+                        ctx.lineTo(-6, 6);
+                        ctx.closePath();
+                        ctx.fill();
+
+                        // Fuego medio
+                        ctx.fillStyle = '#f97316'; 
+                        ctx.beginPath();
+                        ctx.moveTo(0, -8);
+                        ctx.lineTo(4, 4);
+                        ctx.lineTo(-4, 4);
+                        ctx.closePath();
+                        ctx.fill();
+
+                        // Fuego interior
+                        ctx.fillStyle = '#fef08a'; 
+                        ctx.beginPath();
+                        ctx.moveTo(0, -4);
+                        ctx.lineTo(2, 2);
+                        ctx.lineTo(-2, 2);
+                        ctx.closePath();
+                        ctx.fill();
+
+                        ctx.restore();
+                    }
+                    ctx.shadowBlur = 0;
+                }
 
                 if (ball.attached && isPlaying) {
                     ctx.shadowBlur = 0;
@@ -1038,9 +1157,9 @@
             drops.forEach(drop => {
                 let info = powerUpTypes[drop.type];
                 
-                if (drop.type === 'sayan') {
+                if (drop.type === 'sayan' || drop.type === 'hadoken' || drop.type === 'kamish') {
                     ctx.shadowBlur = 15;
-                    ctx.shadowColor = '#fde047';
+                    ctx.shadowColor = info.color;
                 }
                 
                 ctx.fillStyle = info.color;
@@ -1049,7 +1168,7 @@
                 ctx.fillRect(drop.x + 2, drop.y + 2, drop.w - 4, drop.h * 0.4);
                 
                 ctx.fillStyle = info.textC;
-                ctx.font = drop.type === 'sayan' || drop.type === 'pokeball' ? 'bold 20px Arial' : 'bold 16px Arial';
+                ctx.font = (drop.type === 'sayan' || drop.type === 'pokeball' || drop.type === 'hadoken' || drop.type === 'kamish') ? 'bold 20px Arial' : 'bold 16px Arial';
                 ctx.fillText(info.symbol, drop.x + drop.w/2, drop.y + drop.h/2 + 2);
                 
                 ctx.shadowBlur = 0;
@@ -1114,14 +1233,28 @@
                 if (balls.length > 0) {
                     let baseBall = balls.find(b => !b.attached) || balls[0];
                     for (let i = 0; i < 10; i++) {
-                        let angle = (Math.PI * 2 * i) / 10;
+                        let angle = ((Math.PI * 2 * i) / 10) + 0.1; // Desfase ligero para evitar ángulos 100% horizontales
                         let newDx = baseBall.speed * 1.2 * Math.cos(angle);
                         let newDy = baseBall.speed * 1.2 * Math.sin(angle);
                         balls.push({ x: baseBall.x, y: baseBall.y, radius: baseBall.radius, speed: baseBall.speed, dx: newDx, dy: newDy, active: true, history: [], attached: false, attachOffset: 0 });
                     }
                 }
+            } else if (type === 'hadoken') {
+                hadokens.push({
+                    x: paddle.x + paddle.width / 2,
+                    y: paddle.y,
+                    radius: paddle.width / 2,
+                    speed: 15,
+                    color: '#38bdf8',
+                    history: []
+                });
+                playSound('paddle');
             } else if (type === 'pokeball') {
                 effects.pokeball.timer = effects.pokeball.max;
+            } else if (type === 'infinito') {
+                effects.infinito.timer = effects.infinito.max;
+            } else if (type === 'kamish') {
+                effects.kamish.timer = effects.kamish.max;
             } else if (type === 'life') { 
                 lives++; ui.lives.innerText = lives; saveGameState(); 
             }
@@ -1141,62 +1274,160 @@
                 let b = balls[i];
                 if (b.attached) continue; 
 
-                b.history.unshift({x: b.x, y: b.y}); if(b.history.length > 8) b.history.pop();
-                b.x += b.dx * speedMod; b.y += b.dy * speedMod;
-
-                if (b.x + b.radius > GAME_WIDTH) { b.x = GAME_WIDTH - b.radius; b.dx *= -1; } 
-                else if (b.x - b.radius < 0) { b.x = b.radius; b.dx *= -1; }
-                if (b.y - b.radius < 0) { b.y = b.radius; b.dy *= -1; }
-                if (b.y + b.radius > GAME_HEIGHT) { balls.splice(i, 1); continue; }
-
-                if (b.y + b.radius > paddle.y && b.y - b.radius < paddle.y + paddle.height && b.x + b.radius > paddle.x && b.x - b.radius < paddle.x + paddle.width) {
-                    if (b.dy > 0) {
-                        b.y = paddle.y - b.radius; playSound('paddle');
-                        if (effects.magnet.timer > 0) {
-                            b.attached = true; b.attachOffset = b.x - paddle.x;
-                            if (b.attachOffset < 0) b.attachOffset = 0; if (b.attachOffset > paddle.width) b.attachOffset = paddle.width;
-                            b.dx = 0; b.dy = 0;
-                        } else {
-                            let hitPoint = (b.x - (paddle.x + paddle.width / 2)) / (paddle.width / 2);
-                            b.dx = b.speed * Math.sin(hitPoint * (Math.PI / 2.5)); b.dy = -b.speed * Math.cos(hitPoint * (Math.PI / 2.5));
-                            stars.forEach(s => s.y -= 1);
-                        }
-                    }
+                // --- SISTEMA ANTI-ATASCOS HORIZONTALES ---
+                if (Math.abs(b.dy) < 1.5) {
+                    b.dy = b.dy >= 0 ? 1.5 : -1.5;
                 }
 
-                for (let r = 0; r < bricks.length; r++) {
-                    for (let c = 0; c < bricks[r].length; c++) {
-                        let brick = bricks[r][c];
-                        if (brick && brick.hp > 0) {
-                            if (b.x + b.radius < brick.x || b.x - b.radius > brick.x + brick.w ||
-                                b.y + b.radius < brick.y || b.y - b.radius > brick.y + brick.h) {
-                                continue;
-                            }
+                b.history.unshift({x: b.x, y: b.y}); if(b.history.length > 8) b.history.pop();
 
-                            let testX = b.x; let testY = b.y;
-                            if (b.x < brick.x) testX = brick.x; else if (b.x > brick.x + brick.w) testX = brick.x + brick.w;
-                            if (b.y < brick.y) testY = brick.y; else if (b.y > brick.y + brick.h) testY = brick.y + brick.h;
+                // FÍSICAS MEJORADAS: Sub-stepping para evitar saltos de bloques
+                let steps = 3;
+                let sDx = (b.dx * speedMod) / steps;
+                let sDy = (b.dy * speedMod) / steps;
 
-                            let distX = b.x - testX; let distY = b.y - testY;
-                            let distance = Math.sqrt((distX*distX) + (distY*distY));
+                for (let step = 0; step < steps; step++) {
+                    b.x += sDx;
+                    b.y += sDy;
 
-                            if (distance <= b.radius) {
-                                brick.hp -= (effects.fireball.timer > 0 || effects.sayan.timer > 0 ? 100 : 1); playSound('brick');
-                                if (effects.poison.timer > 0 && brick.hp > 0) brick.poisoned = true;
-                                score += 10; ui.score.innerText = score;
+                    // Choques con los bordes de la pantalla
+                    if (b.x + b.radius > GAME_WIDTH) { b.x = GAME_WIDTH - b.radius; b.dx *= -1; sDx *= -1; } 
+                    else if (b.x - b.radius < 0) { b.x = b.radius; b.dx *= -1; sDx *= -1; }
+                    if (b.y - b.radius < 0) { b.y = b.radius; b.dy *= -1; sDy *= -1; }
 
-                                if (brick.hp <= 0 && brick.powerUp) drops.push({ x: brick.x + brick.w/2 - 22.5, y: brick.y + brick.h, w: 45, h: 30, type: brick.powerUp, speed: 3 });
+                    // PODER INFINITO
+                    if (effects.infinito.timer > 0) {
+                        let topBound = GAME_HEIGHT / 2 - 100;
+                        let bottomBound = GAME_HEIGHT / 2 + 100;
+                        if (b.y < topBound) { b.y = topBound; b.dy = Math.abs(b.dy); sDy = Math.abs(sDy); }
+                        else if (b.y > bottomBound) { b.y = bottomBound; b.dy = -Math.abs(b.dy); sDy = -Math.abs(sDy); }
 
-                                if (effects.fireball.timer <= 0 && effects.sayan.timer <= 0) {
-                                    if (b.radius - Math.abs(distX) < b.radius - Math.abs(distY)) { b.dx *= -1; b.x = b.x < brick.x ? brick.x - b.radius : brick.x + brick.w + b.radius; } 
-                                    else { b.dy *= -1; b.y = b.y < brick.y ? brick.y - b.radius : brick.y + brick.h + b.radius; }
+                        // Daño remoto del laser en el primer step
+                        if (step === 0) {
+                            for (let r = 0; r < bricks.length; r++) {
+                                for (let c = 0; c < bricks[r].length; c++) {
+                                    let brick = bricks[r][c];
+                                    if (brick && brick.hp > 0 && b.x > brick.x && b.x < brick.x + brick.w) {
+                                        brick.hp -= 2; 
+                                        score += 5; ui.score.innerText = score;
+                                        if (brick.hp <= 0 && brick.powerUp) drops.push({ x: brick.x + brick.w/2 - 22.5, y: brick.y + brick.h, w: 45, h: 30, type: brick.powerUp, speed: 3 });
+                                    }
                                 }
                             }
                         }
                     }
-                }
+
+                    // Posiciones de las dagas de Kamish para chequear colisiones en este step
+                    let daggers = [];
+                    if (effects.kamish.timer > 0 && !b.attached) {
+                        let orbitRadius = 35;
+                        let time = Date.now() / 100;
+                        daggers.push({x: b.x + Math.cos(time) * orbitRadius, y: b.y + Math.sin(time) * orbitRadius, radius: 12});
+                        daggers.push({x: b.x + Math.cos(time + Math.PI) * orbitRadius, y: b.y + Math.sin(time + Math.PI) * orbitRadius, radius: 12});
+                    }
+
+                    // Colisión con la pala
+                    if (b.y + b.radius > paddle.y && b.y - b.radius < paddle.y + paddle.height && b.x + b.radius > paddle.x && b.x - b.radius < paddle.x + paddle.width) {
+                        if (b.dy > 0) {
+                            b.y = paddle.y - b.radius; playSound('paddle');
+                            if (effects.magnet.timer > 0) {
+                                b.attached = true; b.attachOffset = b.x - paddle.x;
+                                if (b.attachOffset < 0) b.attachOffset = 0; if (b.attachOffset > paddle.width) b.attachOffset = paddle.width;
+                                b.dx = 0; b.dy = 0;
+                                break; 
+                            } else {
+                                let hitPoint = (b.x - (paddle.x + paddle.width / 2)) / (paddle.width / 2);
+                                b.dx = b.speed * Math.sin(hitPoint * (Math.PI / 2.5)); 
+                                b.dy = -b.speed * Math.cos(hitPoint * (Math.PI / 2.5));
+                                sDx = (b.dx * speedMod) / steps;
+                                sDy = (b.dy * speedMod) / steps;
+                                stars.forEach(s => s.y -= 1);
+                            }
+                        }
+                    }
+
+                    // Colisión con los bloques
+                    let brickHit = false;
+                    for (let r = 0; r < bricks.length; r++) {
+                        for (let c = 0; c < bricks[r].length; c++) {
+                            let brick = bricks[r][c];
+                            if (brick && brick.hp > 0) {
+
+                                // --- 1. Chequeo Dagas Kamish ---
+                                if (effects.kamish.timer > 0 && !b.attached) {
+                                    for(let d=0; d<daggers.length; d++) {
+                                        let dag = daggers[d];
+                                        if (brick.hp > 0) {
+                                            if (dag.x + dag.radius < brick.x || dag.x - dag.radius > brick.x + brick.w ||
+                                                dag.y + dag.radius < brick.y || dag.y - dag.radius > brick.y + brick.h) continue;
+
+                                            let testX = dag.x; let testY = dag.y;
+                                            if (dag.x < brick.x) testX = brick.x; else if (dag.x > brick.x + brick.w) testX = brick.x + brick.w;
+                                            if (dag.y < brick.y) testY = brick.y; else if (dag.y > brick.y + brick.h) testY = brick.y + brick.h;
+
+                                            let distX = dag.x - testX; let distY = dag.y - testY;
+                                            if (distX*distX + distY*distY <= dag.radius*dag.radius) {
+                                                brick.hp -= 100;
+                                                playSound('brick');
+                                                score += 10; ui.score.innerText = score;
+                                                if (brick.powerUp) drops.push({ x: brick.x + brick.w/2 - 22.5, y: brick.y + brick.h, w: 45, h: 30, type: brick.powerUp, speed: 3 });
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // --- 2. Chequeo Bola (solo si el bloque sigue vivo tras las dagas) ---
+                                if (brick.hp > 0) {
+                                    // Check AABB optimizado
+                                    if (b.x + b.radius < brick.x || b.x - b.radius > brick.x + brick.w ||
+                                        b.y + b.radius < brick.y || b.y - b.radius > brick.y + brick.h) {
+                                        continue;
+                                    }
+
+                                    let testX = b.x; let testY = b.y;
+                                    if (b.x < brick.x) testX = brick.x; else if (b.x > brick.x + brick.w) testX = brick.x + brick.w;
+                                    if (b.y < brick.y) testY = brick.y; else if (b.y > brick.y + brick.h) testY = brick.y + brick.h;
+
+                                    let distX = b.x - testX; let distY = b.y - testY;
+                                    let distance = Math.sqrt((distX*distX) + (distY*distY));
+
+                                    if (distance <= b.radius) {
+                                        brick.hp -= (effects.fireball.timer > 0 || effects.sayan.timer > 0 || effects.infinito.timer > 0 ? 100 : 1); 
+                                        playSound('brick');
+                                        if (effects.poison.timer > 0 && brick.hp > 0) brick.poisoned = true;
+                                        score += 10; ui.score.innerText = score;
+
+                                        if (brick.hp <= 0 && brick.powerUp) drops.push({ x: brick.x + brick.w/2 - 22.5, y: brick.y + brick.h, w: 45, h: 30, type: brick.powerUp, speed: 3 });
+
+                                        if (effects.fireball.timer <= 0 && effects.sayan.timer <= 0 && effects.infinito.timer <= 0) {
+                                            let overlapX = b.radius - Math.abs(distX);
+                                            let overlapY = b.radius - Math.abs(distY);
+
+                                            // Expulsar la bola correctamente para que no se quede atascada
+                                            if (overlapX < overlapY) { 
+                                                b.dx *= -1; sDx *= -1; 
+                                                b.x = b.x < brick.x ? brick.x - b.radius : brick.x + brick.w + b.radius; 
+                                            } 
+                                            else { 
+                                                b.dy *= -1; sDy *= -1; 
+                                                b.y = b.y < brick.y ? brick.y - b.radius : brick.y + brick.h + b.radius; 
+                                            }
+                                        }
+                                        brickHit = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        if (brickHit) break;
+                    }
+                } // Fin del bucle steps
+
+                // Check Game Over al fondo
+                if (b.y + b.radius > GAME_HEIGHT) { balls.splice(i, 1); continue; }
             }
 
+            // Daño por veneno
             for (let r = 0; r < bricks.length; r++) {
                 for (let c = 0; c < bricks[r].length; c++) {
                     let brick = bricks[r][c];
@@ -1235,7 +1466,7 @@
 
         function resetAllEffects() {
             for (const key in effects) effects[key].timer = 0;
-            drops = []; bullets = []; lightnings = []; renderHUD();
+            drops = []; bullets = []; lightnings = []; hadokens = []; renderHUD();
         }
 
         // --- BUCLE PRINCIPAL ---
@@ -1254,7 +1485,7 @@
                 }
                 ctx.globalAlpha = 1.0;
             } else {
-                drawBullets(); drawLightnings(); drawPaddle(); drawBalls(); movePaddle(); updateDrops(); updateBullets(); updateLightnings(); updateBalls(updateEffects());
+                drawBullets(); drawHadokens(); drawLightnings(); drawPaddle(); drawBalls(); movePaddle(); updateDrops(); updateBullets(); updateHadokens(); updateLightnings(); updateBalls(updateEffects());
             }
             animationId = requestAnimationFrame(update);
         }
