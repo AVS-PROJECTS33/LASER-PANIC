@@ -4,6 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>LASER PANIC</title>
+    
+    <!-- Configuración de App (PWA) e Icono -->
+    <meta name="theme-color" content="#020617">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <!-- Icono SVG en línea -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%23020617' rx='112'/%3E%3Crect x='156' y='380' width='200' height='32' fill='%2338bdf8' rx='16'/%3E%3Ccircle cx='256' cy='300' r='40' fill='%23facc15'/%3E%3Cpath d='M256 300 V80' stroke='%23ef4444' stroke-width='16' stroke-linecap='round' stroke-dasharray='30 20'/%3E%3Ccircle cx='140' cy='160' r='12' fill='%23cbd5e1'/%3E%3Ccircle cx='380' cy='220' r='8' fill='%23cbd5e1'/%3E%3C/svg%3E">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%23020617' rx='112'/%3E%3Crect x='156' y='380' width='200' height='32' fill='%2338bdf8' rx='16'/%3E%3Ccircle cx='256' cy='300' r='40' fill='%23facc15'/%3E%3Cpath d='M256 300 V80' stroke='%23ef4444' stroke-width='16' stroke-linecap='round' stroke-dasharray='30 20'/%3E%3Ccircle cx='140' cy='160' r='12' fill='%23cbd5e1'/%3E%3Ccircle cx='380' cy='220' r='8' fill='%23cbd5e1'/%3E%3C/svg%3E">
+
     <style>
         /* --- ESTILOS GENERALES --- */
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-touch-callout: none; }
@@ -14,7 +24,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-start; /* Alinear arriba para dejar espacio abajo */
+            justify-content: center;
             min-height: 100vh;
             overflow: hidden;
             touch-action: none;
@@ -25,68 +35,69 @@
             width: 100%;
             max-width: 600px;
             padding: 5px;
-            padding-bottom: 80px; /* GARANTIZA ZONA TÁCTIL ABAJO */
             display: flex;
             flex-direction: column;
             align-items: center;
-            height: 100vh; /* Ocupa toda la pantalla */
         }
 
         /* --- CABECERA ESTADÍSTICAS --- */
         .header {
             width: 100%;
             display: flex;
-            flex-wrap: nowrap;
-            gap: 4px;
+            flex-wrap: wrap;
+            gap: 5px;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 4px;
-            padding: 0 2px;
+            margin-bottom: 5px;
+            padding: 0 5px;
             font-weight: bold;
+            font-size: 1rem;
             text-shadow: 0 0 10px rgba(255,255,255,0.3);
-            flex-shrink: 0;
+        }
+
+        .header-left {
+            display: flex;
+            gap: 5px;
         }
 
         .stat-box {
             background: rgba(255,255,255,0.05);
-            padding: 4px 8px;
+            padding: 4px 10px;
             border-radius: 6px;
             border: 1px solid rgba(255,255,255,0.1);
             backdrop-filter: blur(5px);
             white-space: nowrap;
-            font-size: clamp(0.7rem, 3vw, 1rem);
         }
         .score { color: #38bdf8; }
         .lives { color: #fb7185; }
         .pause-btn { 
             cursor: pointer; background: #38bdf8; color: #020617; 
-            font-weight: 900; padding: 4px 10px; transition: transform 0.1s;
+            font-weight: 900; padding: 4px 12px; transition: transform 0.1s;
             display: flex;
             align-items: center;
             justify-content: center;
         }
         .pause-btn:active { transform: scale(0.9); }
 
-        /* --- HUD PODERES ACTIVOS (MÁS FINO) --- */
+        /* --- HUD PODERES ACTIVOS --- */
         #active-powers-hud {
             width: 100%;
             display: flex;
             flex-wrap: wrap;
-            gap: 4px;
-            min-height: 20px; /* Reducido de 30px */
-            margin-bottom: 4px;
+            gap: 5px;
+            min-height: 30px;
+            margin-bottom: 5px;
             padding: 0 5px;
-            flex-shrink: 0;
         }
 
         .power-bar-container {
             flex: 1;
-            min-width: 60px;
+            min-width: 80px;
             background: rgba(0,0,0,0.5);
             border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 3px;
+            border-radius: 4px;
             position: relative;
-            height: 18px; /* Reducido de 24px */
+            height: 24px;
             overflow: hidden;
             display: flex;
             align-items: center;
@@ -107,28 +118,24 @@
             z-index: 2;
             width: 100%;
             text-align: center;
-            font-size: 0.65rem; /* Letra un poco más pequeña */
+            font-size: 0.75rem;
             font-weight: bold;
             color: white;
             text-shadow: 1px 1px 2px black;
-            letter-spacing: 0.5px;
-            line-height: 18px;
+            letter-spacing: 1px;
         }
 
-        /* --- LIENZO CLÁSICO (AJUSTADO AL ESPACIO DISPONIBLE) --- */
+        /* --- LIENZO --- */
         #canvas-wrapper {
             position: relative;
             width: 100%;
-            /* Mantiene la proporción clásica 3:4 */
-            aspect-ratio: 3 / 4; 
-            /* Se estira al máximo posible sin empujar la zona táctil fuera de la pantalla */
-            max-height: calc(100vh - 120px); 
+            aspect-ratio: 3 / 4;
+            max-height: 75vh;
             background: radial-gradient(circle at 50% 0%, #1e293b 0%, #000000 100%);
             border: 2px solid #1e293b;
             border-radius: 12px;
             overflow: hidden;
             transition: background 1s ease; 
-            margin-bottom: auto; /* Empuja el resto hacia abajo */
         }
 
         canvas {
@@ -183,6 +190,8 @@
             box-shadow: 0 4px 0 #334155, 0 0 10px rgba(71,85,105,0.5);
         }
         .btn-secondary:active { box-shadow: 0 0 0 #334155, 0 0 10px rgba(71,85,105,0.5); }
+
+        .mobile-hint { margin-top: 10px; font-size: 0.85rem; color: #64748b; text-align: center; }
 
         /* --- INPUT NOMBRE --- */
         .name-input-group {
@@ -268,34 +277,22 @@
         .leaderboard-list li:last-child { border-bottom: none; }
         .leaderboard-list li span:last-child { font-weight: bold; color: #38bdf8; }
         .loading-text { color: #94a3b8; font-style: italic; text-align: center; width: 100%; display: block; }
-        
-        /* Zona táctil visual para guiar al jugador */
-        .touch-zone-indicator {
-            width: 100%;
-            text-align: center;
-            font-size: 0.8rem;
-            color: #475569;
-            margin-top: auto;
-            padding: 10px 0;
-            pointer-events: none; /* No interfiere con los toques */
-        }
     </style>
 </head>
 <body>
 
     <div id="game-container">
-        <!-- CABECERA -->
         <div class="header">
-            <div class="stat-box pause-btn" id="pause-game-btn" title="Pausar y Menú">☰</div>
+            <div class="header-left">
+                <div class="stat-box pause-btn" id="pause-game-btn" title="Pausar y Menú">☰</div>
+            </div>
             <div class="stat-box score">Pts: <span id="score-display">0</span></div>
-            <div class="stat-box level-text" id="world-level-display">M1-N1</div>
+            <div class="stat-box level-text" id="world-level-display">MUNDO 1 - NIVEL 1</div>
             <div class="stat-box lives">Vidas: <span id="lives-display">3</span></div>
         </div>
 
-        <!-- BARRAS DE PODER (MÁS FINAS) -->
         <div id="active-powers-hud"></div>
 
-        <!-- LIENZO DEL JUEGO -->
         <div id="canvas-wrapper">
             <canvas id="gameCanvas"></canvas>
 
@@ -331,6 +328,7 @@
                 <h2>Game Over</h2>
                 <p style="margin-bottom: 5px;">Puntuación Final: <span id="final-score" style="color:#fcd34d; font-weight:bold; font-size:1.2rem;">0</span></p>
                 
+                <!-- Sección para registrar puntuación en Firebase -->
                 <div id="save-score-section" class="name-input-group" style="display: none;">
                     <p style="font-size:0.9rem; margin-bottom:0;">¡Buena partida! Guarda tu récord:</p>
                     <input type="text" id="player-name-input" class="name-input" placeholder="TU ALIAS" maxlength="8">
@@ -368,14 +366,12 @@
             </div>
         </div>
         
-        <!-- Indicador de zona táctil para móviles -->
-        <div class="touch-zone-indicator">
-            (Desliza en esta zona vacía para moverte)
-        </div>
+        <p class="mobile-hint">Toca/Clic para lanzar la bola. Desliza para moverte.</p>
     </div>
 
     <!-- Integración y lógica -->
     <script type="module">
+        // --- FIREBASE SETUP ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -464,6 +460,7 @@
             }
         }
 
+        // --- SISTEMA DE SONIDOS SINTETIZADOS ---
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         let audioCtx;
 
@@ -506,12 +503,12 @@
         document.addEventListener('touchstart', initAudio, { once: true });
 
 
-        // --- CONFIGURACIÓN PRINCIPAL DEL JUEGO (LIENZO ORIGINAL) ---
+        // --- CONFIGURACIÓN PRINCIPAL DEL JUEGO ---
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         
         const GAME_WIDTH = 600;
-        const GAME_HEIGHT = 800; // Original
+        const GAME_HEIGHT = 800;
         const PI2 = Math.PI * 2;
         
         function resizeCanvas() {
@@ -523,6 +520,7 @@
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
 
+        // --- SISTEMA DE MUNDOS Y FONDOS ---
         const worldThemes = [
             { id: 1, name: "Espacio Profundo", grad: "radial-gradient(circle at 50% 0%, #1e293b 0%, #000000 100%)", starColor: "255, 255, 255", textColor: "#e2e8f0", textShadow: "0 0 8px #94a3b8" }, 
             { id: 2, name: "Nebulosa Solar", grad: "radial-gradient(circle at 50% 0%, #4c1d95 0%, #000000 100%)", starColor: "233, 213, 255", textColor: "#d8b4fe", textShadow: "0 0 10px #c084fc, 0 0 20px #9333ea" }, 
@@ -558,6 +556,7 @@
             saveStatusMsg: document.getElementById('save-status-msg')
         };
 
+        // --- SISTEMA DE GUARDADO LOCAL Y ESTADO ---
         let maxLevelUnlocked = parseInt(localStorage.getItem('laserPanicMaxLevel')) || 1;
         const maxLevels = 100;
 
@@ -567,8 +566,6 @@
         let score = 0;
         let lives = 3;
         let safeScore = 0; 
-        
-        let lastFrameTime = 0; // Control de FPS
 
         let savedState = JSON.parse(localStorage.getItem('laserPanicGameState'));
         if (savedState && savedState.lives > 0) {
@@ -581,6 +578,7 @@
         ui.score.innerText = score;
         ui.lives.innerText = lives;
 
+        // NUEVA FUNCIÓN MATEMÁTICA ESTRICTA PARA LOS PUNTOS POR MUNDO
         function obtenerPuntosBloque() {
             let mundoActual = Math.floor((level - 1) / 10) + 1;
             if (mundoActual > 10) mundoActual = 10;
@@ -617,7 +615,7 @@
             });
         }
 
-        // --- PALA ---
+        // --- OBJETOS DEL JUEGO ---
         const PADDLE_BASE_WIDTH = 120;
         const paddle = {
             width: PADDLE_BASE_WIDTH, height: 18,
@@ -671,6 +669,7 @@
             'kamish': { symbol: '🗡️', color: '#dc2626', textC: '#ffffff' }
         };
 
+        // --- MUNDO/UI ---
         function updateWorldTheme() {
             let worldIndex = Math.floor((level - 1) / 10);
             if (worldIndex > 9) worldIndex = 9;
@@ -683,7 +682,7 @@
             ui.worldLvl.style.textShadow = `1px 1px 2px #000, -1px -1px 2px #000, 1px -1px 2px #000, -1px 1px 2px #000, ${theme.textShadow}`;
             
             let lvlInWorld = ((level - 1) % 10) + 1;
-            ui.worldLvl.innerText = `M${worldIndex + 1}-N${lvlInWorld}`; 
+            ui.worldLvl.innerText = `MUNDO ${worldIndex + 1} - NIVEL ${lvlInWorld}`;
             
             let currentState = JSON.parse(localStorage.getItem('laserPanicGameState'));
             if (currentState && currentState.lives > 0) {
@@ -729,6 +728,7 @@
             }
         }
 
+        // --- BOTONES ---
         document.getElementById('start-btn').addEventListener('click', () => { 
             let saved = JSON.parse(localStorage.getItem('laserPanicGameState'));
             if (saved && saved.lives > 0) {
@@ -760,12 +760,13 @@
         document.getElementById('pause-game-btn').addEventListener('click', () => {
             if (isPlaying && !isPaddleExploding) { isPlaying = false; cancelAnimationFrame(animationId); ui.pause.classList.add('active'); }
         });
-        document.getElementById('resume-btn').addEventListener('click', () => { ui.pause.classList.remove('active'); lastFrameTime = performance.now(); isPlaying = true; update(lastFrameTime); });
+        document.getElementById('resume-btn').addEventListener('click', () => { ui.pause.classList.remove('active'); isPlaying = true; update(); });
         document.getElementById('quit-to-menu-btn').addEventListener('click', () => {
             ui.pause.classList.remove('active'); isPaddleExploding = false; paddle.width = PADDLE_BASE_WIDTH; resetAllEffects(); updateWorldTheme(); ui.start.classList.add('active');
         });
         document.getElementById('next-level-btn').addEventListener('click', nextLevel);
 
+        // --- OPTIMIZACIÓN DE DIBUJO ---
         function drawBackground() {
             ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
             stars.forEach(s => {
@@ -825,10 +826,9 @@
         }
 
         function createBall() {
-            let currentSpeed = 10 + (level * 0.07); // Velocidad equilibrada conservada
             return {
                 x: paddle.x + paddle.width / 2, y: paddle.y - 12, radius: 10,
-                speed: currentSpeed, dx: 0, dy: 0, active: false, history: [], attached: false, attachOffset: 0
+                speed: 11 + (level * 0.15), dx: 0, dy: 0, active: false, history: [], attached: false, attachOffset: 0
             };
         }
 
@@ -1038,6 +1038,7 @@
             else if (effects.fireball.timer > 0) baseColor = '#ffed4a';
             else if (effects.poison.timer > 0) baseColor = '#bbf7d0';
 
+            // Dibujar lineas de limite de infinito solo 1 vez
             if (effects.infinito.timer > 0) {
                 ctx.strokeStyle = 'rgba(129, 140, 248, 0.4)';
                 ctx.lineWidth = 2;
@@ -1057,6 +1058,7 @@
             balls.forEach(ball => {
                 if (!ball.attached) {
                     
+                    // Laser infinito individual
                     if (effects.infinito.timer > 0) {
                         ctx.fillStyle = 'rgba(129, 140, 248, 0.4)';
                         ctx.fillRect(ball.x - ball.radius * 2, 0, ball.radius * 4, GAME_HEIGHT);
@@ -1081,6 +1083,7 @@
                 }
                 ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.radius, 0, PI2); ctx.fillStyle = baseColor; ctx.fill();
 
+                // --- DIBUJAR DAGAS DE KAMISH ---
                 if (effects.kamish.timer > 0 && !ball.attached) {
                     let orbitRadius = 35;
                     let time = Date.now() / 100;
@@ -1096,6 +1099,7 @@
                         ctx.shadowBlur = 15;
                         ctx.shadowColor = '#ef4444';
                         
+                        // Fuego exterior
                         ctx.fillStyle = '#dc2626';
                         ctx.beginPath();
                         ctx.moveTo(0, -12);
@@ -1104,6 +1108,7 @@
                         ctx.closePath();
                         ctx.fill();
 
+                        // Fuego medio
                         ctx.fillStyle = '#f97316'; 
                         ctx.beginPath();
                         ctx.moveTo(0, -8);
@@ -1112,6 +1117,7 @@
                         ctx.closePath();
                         ctx.fill();
 
+                        // Fuego interior
                         ctx.fillStyle = '#fef08a'; 
                         ctx.beginPath();
                         ctx.moveTo(0, -4);
@@ -1231,6 +1237,7 @@
         }
 
         function activatePowerUp(type) {
+            // El poder da 50 puntos fijos para no volverse loco en la puntuación total y confundir al usuario
             score += 50; ui.score.innerText = score;
             
             if (type === 'multiball') {
@@ -1248,7 +1255,7 @@
                 if (balls.length > 0) {
                     let baseBall = balls.find(b => !b.attached) || balls[0];
                     for (let i = 0; i < 10; i++) {
-                        let angle = ((Math.PI * 2 * i) / 10) + 0.1; 
+                        let angle = ((Math.PI * 2 * i) / 10) + 0.1; // Desfase ligero para evitar ángulos 100% horizontales
                         let newDx = baseBall.speed * 1.2 * Math.cos(angle);
                         let newDy = baseBall.speed * 1.2 * Math.sin(angle);
                         balls.push({ x: baseBall.x, y: baseBall.y, radius: baseBall.radius, speed: baseBall.speed, dx: newDx, dy: newDy, active: true, history: [], attached: false, attachOffset: 0 });
@@ -1289,12 +1296,14 @@
                 let b = balls[i];
                 if (b.attached) continue; 
 
+                // --- SISTEMA ANTI-ATASCOS HORIZONTALES ---
                 if (Math.abs(b.dy) < 1.5) {
                     b.dy = b.dy >= 0 ? 1.5 : -1.5;
                 }
 
                 b.history.unshift({x: b.x, y: b.y}); if(b.history.length > 8) b.history.pop();
 
+                // FÍSICAS MEJORADAS: Sub-stepping para evitar saltos de bloques
                 let steps = 3;
                 let sDx = (b.dx * speedMod) / steps;
                 let sDy = (b.dy * speedMod) / steps;
@@ -1303,23 +1312,26 @@
                     b.x += sDx;
                     b.y += sDy;
 
+                    // Choques con los bordes de la pantalla
                     if (b.x + b.radius > GAME_WIDTH) { b.x = GAME_WIDTH - b.radius; b.dx *= -1; sDx *= -1; } 
                     else if (b.x - b.radius < 0) { b.x = b.radius; b.dx *= -1; sDx *= -1; }
                     if (b.y - b.radius < 0) { b.y = b.radius; b.dy *= -1; sDy *= -1; }
 
+                    // PODER INFINITO
                     if (effects.infinito.timer > 0) {
                         let topBound = GAME_HEIGHT / 2 - 100;
                         let bottomBound = GAME_HEIGHT / 2 + 100;
                         if (b.y < topBound) { b.y = topBound; b.dy = Math.abs(b.dy); sDy = Math.abs(sDy); }
                         else if (b.y > bottomBound) { b.y = bottomBound; b.dy = -Math.abs(b.dy); sDy = -Math.abs(sDy); }
 
+                        // Daño remoto del laser en el primer step
                         if (step === 0) {
                             for (let r = 0; r < bricks.length; r++) {
                                 for (let c = 0; c < bricks[r].length; c++) {
                                     let brick = bricks[r][c];
                                     if (brick && brick.hp > 0 && b.x > brick.x && b.x < brick.x + brick.w) {
                                         brick.hp -= 2; 
-                                        score += Math.floor(obtenerPuntosBloque() / 2);
+                                        score += Math.floor(obtenerPuntosBloque() / 2); // Da la mitad de puntos xq destruye muchos
                                         ui.score.innerText = score;
                                         if (brick.hp <= 0 && brick.powerUp) drops.push({ x: brick.x + brick.w/2 - 22.5, y: brick.y + brick.h, w: 45, h: 30, type: brick.powerUp, speed: 3 });
                                     }
@@ -1328,6 +1340,7 @@
                         }
                     }
 
+                    // Posiciones de las dagas de Kamish para chequear colisiones en este step
                     let daggers = [];
                     if (effects.kamish.timer > 0 && !b.attached) {
                         let orbitRadius = 35;
@@ -1336,6 +1349,7 @@
                         daggers.push({x: b.x + Math.cos(time + Math.PI) * orbitRadius, y: b.y + Math.sin(time + Math.PI) * orbitRadius, radius: 12});
                     }
 
+                    // Colisión con la pala
                     if (b.y + b.radius > paddle.y && b.y - b.radius < paddle.y + paddle.height && b.x + b.radius > paddle.x && b.x - b.radius < paddle.x + paddle.width) {
                         if (b.dy > 0) {
                             b.y = paddle.y - b.radius; playSound('paddle');
@@ -1355,12 +1369,14 @@
                         }
                     }
 
+                    // Colisión con los bloques
                     let brickHit = false;
                     for (let r = 0; r < bricks.length; r++) {
                         for (let c = 0; c < bricks[r].length; c++) {
                             let brick = bricks[r][c];
                             if (brick && brick.hp > 0) {
 
+                                // --- 1. Chequeo Dagas Kamish ---
                                 if (effects.kamish.timer > 0 && !b.attached) {
                                     for(let d=0; d<daggers.length; d++) {
                                         let dag = daggers[d];
@@ -1384,7 +1400,9 @@
                                     }
                                 }
 
+                                // --- 2. Chequeo Bola (solo si el bloque sigue vivo tras las dagas) ---
                                 if (brick.hp > 0) {
+                                    // Check AABB optimizado
                                     if (b.x + b.radius < brick.x || b.x - b.radius > brick.x + brick.w ||
                                         b.y + b.radius < brick.y || b.y - b.radius > brick.y + brick.h) {
                                         continue;
@@ -1410,6 +1428,7 @@
                                             let overlapX = b.radius - Math.abs(distX);
                                             let overlapY = b.radius - Math.abs(distY);
 
+                                            // Expulsar la bola correctamente para que no se quede atascada
                                             if (overlapX < overlapY) { 
                                                 b.dx *= -1; sDx *= -1; 
                                                 b.x = b.x < brick.x ? brick.x - b.radius : brick.x + brick.w + b.radius; 
@@ -1427,11 +1446,13 @@
                         }
                         if (brickHit) break;
                     }
-                } 
+                } // Fin del bucle steps
 
+                // Check Game Over al fondo
                 if (b.y + b.radius > GAME_HEIGHT) { balls.splice(i, 1); continue; }
             }
 
+            // Daño por veneno
             for (let r = 0; r < bricks.length; r++) {
                 for (let c = 0; c < bricks[r].length; c++) {
                     let brick = bricks[r][c];
@@ -1475,16 +1496,9 @@
             drops = []; bullets = []; lightnings = []; hadokens = []; renderHUD();
         }
 
-        function update(timestamp) {
-            animationId = requestAnimationFrame(update);
+        // --- BUCLE PRINCIPAL ---
+        function update() {
             if (!isPlaying) return;
-
-            // --- LIMITADOR DE FPS PARA PANTALLAS DE 120Hz ---
-            if (timestamp) {
-                if (timestamp - lastFrameTime < 15) return; // Limita a ~60FPS
-                lastFrameTime = timestamp;
-            }
-
             drawBackground();
             drawBricks();
             drawDrops();
@@ -1500,33 +1514,28 @@
             } else {
                 drawBullets(); drawHadokens(); drawLightnings(); drawPaddle(); drawBalls(); movePaddle(); updateDrops(); updateBullets(); updateHadokens(); updateLightnings(); updateBalls(updateEffects());
             }
+            animationId = requestAnimationFrame(update);
         }
 
         function startGame() {
             cancelAnimationFrame(animationId); if(explosionTimeout) clearTimeout(explosionTimeout);
             isPaddleExploding = false; ui.start.classList.remove('active');
             saveGameState();
-            updateWorldTheme(); createBricks(level); resetBalls(); 
-            lastFrameTime = performance.now();
-            isPlaying = true; update(lastFrameTime);
+            updateWorldTheme(); createBricks(level); resetBalls(); isPlaying = true; update();
         }
 
         function retryLevel() {
             cancelAnimationFrame(animationId); if(explosionTimeout) clearTimeout(explosionTimeout);
             isPaddleExploding = false; ui.gameOver.classList.remove('active');
             score = 0; lives = 3; safeScore = 0; ui.score.innerText = score; ui.lives.innerText = lives; saveGameState();
-            paddle.width = PADDLE_BASE_WIDTH; resetAllEffects(); updateWorldTheme(); createBricks(level); resetBalls(); 
-            lastFrameTime = performance.now();
-            isPlaying = true; update(lastFrameTime);
+            paddle.width = PADDLE_BASE_WIDTH; resetAllEffects(); updateWorldTheme(); createBricks(level); resetBalls(); isPlaying = true; update();
         }
 
         function nextLevel() {
             cancelAnimationFrame(animationId); if(explosionTimeout) clearTimeout(explosionTimeout);
             isPaddleExploding = false; ui.victory.classList.remove('active');
             level++; safeScore = score; saveGameState();
-            paddle.width = PADDLE_BASE_WIDTH; resetAllEffects(); updateWorldTheme(); createBricks(level); resetBalls(); 
-            lastFrameTime = performance.now();
-            isPlaying = true; update(lastFrameTime);
+            paddle.width = PADDLE_BASE_WIDTH; resetAllEffects(); updateWorldTheme(); createBricks(level); resetBalls(); isPlaying = true; update();
         }
 
         function showGameOver() {
@@ -1546,6 +1555,7 @@
             ui.beaten.classList.add('active'); 
         }
 
+        // --- CONTROLES ---
         document.addEventListener('keydown', (e) => {
             if (e.key === 'ArrowRight' || e.key === 'd') paddle.dx = paddle.speed;
             else if (e.key === 'ArrowLeft' || e.key === 'a') paddle.dx = -paddle.speed;
@@ -1563,22 +1573,10 @@
         document.addEventListener('mousemove', mouseMoveHandler);
         document.addEventListener('mousedown', (e) => { if(e.target.tagName !== 'BUTTON' && e.target.tagName !== 'INPUT' && !e.target.classList.contains('pause-btn')) { if (isPlaying) { launchBall(); shoot(); } } });
 
-        // --- CONTROLES TÁCTILES MEJORADOS ---
-        // Ahora capturamos los toques en TODA la pantalla para que la zona de abajo funcione perfectamente
         document.addEventListener('touchmove', (e) => {
             if(isPlaying) {
                 e.preventDefault(); 
-                const rect = canvas.getBoundingClientRect(); 
-                const scaleX = GAME_WIDTH / rect.width; 
-                // Calculamos relativo a la pantalla, no solo al canvas
-                const touchX = e.touches[0].clientX;
-                let relativeX;
-                
-                // Si toca fuera del canvas a los lados, limitamos
-                if (touchX < rect.left) relativeX = 0;
-                else if (touchX > rect.right) relativeX = GAME_WIDTH;
-                else relativeX = (touchX - rect.left) * scaleX;
-                
+                const rect = canvas.getBoundingClientRect(); const scaleX = GAME_WIDTH / rect.width; const relativeX = (e.touches[0].clientX - rect.left) * scaleX;
                 let newX = relativeX - paddle.width / 2;
                 if (newX < 0) newX = 0; if (newX > GAME_WIDTH - paddle.width) newX = GAME_WIDTH - paddle.width;
                 paddle.x = newX;
@@ -1589,15 +1587,7 @@
             if(isPlaying) {
                 if(e.target.tagName !== 'BUTTON' && e.target.tagName !== 'INPUT' && !e.target.classList.contains('pause-btn')) {
                     e.preventDefault(); launchBall(); shoot();
-                    const rect = canvas.getBoundingClientRect(); 
-                    const scaleX = GAME_WIDTH / rect.width; 
-                    const touchX = e.touches[0].clientX;
-                    let relativeX;
-                    
-                    if (touchX < rect.left) relativeX = 0;
-                    else if (touchX > rect.right) relativeX = GAME_WIDTH;
-                    else relativeX = (touchX - rect.left) * scaleX;
-
+                    const rect = canvas.getBoundingClientRect(); const scaleX = GAME_WIDTH / rect.width; const relativeX = (e.touches[0].clientX - rect.left) * scaleX;
                     let newX = relativeX - paddle.width / 2;
                     if (newX < 0) newX = 0; if (newX > GAME_WIDTH - paddle.width) newX = GAME_WIDTH - paddle.width;
                     paddle.x = newX;
