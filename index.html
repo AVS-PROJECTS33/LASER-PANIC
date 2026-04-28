@@ -10,9 +10,59 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
-    <!-- Icono SVG en línea -->
+    
+    <!-- Icono SVG en línea (Para PC y Android) -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%23020617' rx='112'/%3E%3Crect x='156' y='380' width='200' height='32' fill='%2338bdf8' rx='16'/%3E%3Ccircle cx='256' cy='300' r='40' fill='%23facc15'/%3E%3Cpath d='M256 300 V80' stroke='%23ef4444' stroke-width='16' stroke-linecap='round' stroke-dasharray='30 20'/%3E%3Ccircle cx='140' cy='160' r='12' fill='%23cbd5e1'/%3E%3Ccircle cx='380' cy='220' r='8' fill='%23cbd5e1'/%3E%3C/svg%3E">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%23020617' rx='112'/%3E%3Crect x='156' y='380' width='200' height='32' fill='%2338bdf8' rx='16'/%3E%3Ccircle cx='256' cy='300' r='40' fill='%23facc15'/%3E%3Cpath d='M256 300 V80' stroke='%23ef4444' stroke-width='16' stroke-linecap='round' stroke-dasharray='30 20'/%3E%3Ccircle cx='140' cy='160' r='12' fill='%23cbd5e1'/%3E%3Ccircle cx='380' cy='220' r='8' fill='%23cbd5e1'/%3E%3C/svg%3E">
+
+    <!-- Generador de Icono PNG dinámico (Solución para iPhone/iOS) -->
+    <script>
+        (function() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512; canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            // Fondo oscuro
+            ctx.fillStyle = '#020617';
+            ctx.fillRect(0, 0, 512, 512);
+
+            // Raqueta celeste
+            ctx.fillStyle = '#38bdf8';
+            const rX = 156, rY = 380, rW = 200, rH = 32, rR = 16;
+            ctx.beginPath();
+            ctx.moveTo(rX + rR, rY);
+            ctx.lineTo(rX + rW - rR, rY);
+            ctx.quadraticCurveTo(rX + rW, rY, rX + rW, rY + rR);
+            ctx.lineTo(rX + rW, rY + rH - rR);
+            ctx.quadraticCurveTo(rX + rW, rY + rH, rX + rW - rR, rY + rH);
+            ctx.lineTo(rX + rR, rY + rH);
+            ctx.quadraticCurveTo(rX, rY + rH, rX, rY + rH - rR);
+            ctx.lineTo(rX, rY + rR);
+            ctx.quadraticCurveTo(rX, rY, rX + rR, rY);
+            ctx.fill();
+
+            // Láser rojo
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 16;
+            ctx.lineCap = 'round';
+            ctx.setLineDash([30, 20]);
+            ctx.beginPath(); ctx.moveTo(256, 300); ctx.lineTo(256, 80); ctx.stroke();
+
+            // Bola dorada
+            ctx.fillStyle = '#facc15';
+            ctx.beginPath(); ctx.arc(256, 300, 40, 0, Math.PI * 2); ctx.fill();
+
+            // Estrellas
+            ctx.fillStyle = '#cbd5e1';
+            ctx.beginPath(); ctx.arc(140, 160, 12, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(380, 220, 8, 0, Math.PI * 2); ctx.fill();
+
+            // Insertar enlace PNG de forma nativa para iOS
+            const link = document.createElement('link');
+            link.rel = 'apple-touch-icon';
+            link.href = canvas.toDataURL('image/png');
+            document.head.appendChild(link);
+        })();
+    </script>
 
     <style>
         /* --- ESTILOS GENERALES --- */
